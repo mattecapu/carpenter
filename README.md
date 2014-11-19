@@ -30,16 +30,11 @@ var rest_api = carpenter.declareCollection({
 }).exposeAPI();
 ```
 Now the server is capable of handling any of these requests
-* GET /users
-* GET /users/1
-* GET /users/1/linked/best_friend
-* GET /users/1?fields=name
-* POST /users
-  {
-	email: 'foo@bar.com',
-	name: 'Foo Bar',
-	best_friend: 1
-  }
+* `GET /users`
+* `GET /users/1`
+* `GET /users/1/linked/best_friend`
+* `GET /users/1?fields=name`
+* `POST /users   {email: 'foo@bar.com', name: 'Foo Bar', best_friend: 1}`
 * and almost every other possible request made in the limits of the [JSON API format](http://jsonapi.org/format/)
 
 ### License
