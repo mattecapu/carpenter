@@ -1,0 +1,41 @@
+{
+  "name": "carpenter",
+  "version": "0.0.0",
+  "description": "Automagically generate a REST API from his declarative description",
+  "main": "carpenter.transpiled.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/mattecapu/carpenter.git"
+  },
+  "keywords": [
+    "rest",
+    "api",
+    "scaffolding",
+    "declarative",
+    "tool",
+    "json",
+    "sql",
+    "mysql",
+    "er"
+  ],
+  "author": "Matteo Capucci <mattecapu@live.it> (http://mattecapu.github.io/)",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/mattecapu/carpenter/issues"
+  },
+  "homepage": "https://github.com/mattecapu/carpenter",
+  "devDependencies": {
+    "grunt": "^0.4.5",
+    "grunt-contrib-watch": "^0.6.1",
+    "grunt-react": "^0.10.0"
+  },
+  "dependencies": {
+    "bluebird": "^2.3.11",
+    "mach": "^1.0.0-rc2",
+    "mysql": "^2.5.3",
+    "squel": "^3.9.1"
+  }
+}
