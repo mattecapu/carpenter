@@ -28,6 +28,12 @@ var rest_api = carpenter.declareCollection({
 	},
 	actions: carpenter.actions.all
 }).exposeAPI();
+
+var app = mach.stack();
+
+app.map('/api', rest_api);
+
+mach.serve(app, 80);
 ```
 Now the server is capable of handling any of these requests
 * `GET /users`
