@@ -34,7 +34,7 @@
   },
   "dependencies": {
     "bluebird": "^2.3.11",
-    "mach": "^1.0.0-rc2",
+	"typs": "^0.2.5",
     "mysql": "^2.5.3",
     "squel": "^3.9.1"
   }
