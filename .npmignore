@@ -1,3 +1,10 @@
+# source files
 carpenter.js
+declareResource.js
+exposeAPI.js
+types.js
+actions.js
+
+# dev files
 Gruntfile.js
 .gitignore
