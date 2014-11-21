@@ -1,3 +1,6 @@
-carpenter.transpiled.js
+# build files
+*.transpiled.js
+
+# installation files
 node_modules
 npm-debug.log
