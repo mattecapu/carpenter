@@ -32,7 +32,7 @@ var rest_api = carpenter.declareResource({
 			resource: 'users'
 		}]
 	},
-	actions: carpenter.actions.all
+	methods: ['GET', 'POST', 'PUT', 'DELETE']
 }).exposeAPI();
 
 app = mach.stack();
