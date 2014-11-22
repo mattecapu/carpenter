@@ -4,7 +4,7 @@
 
 var typs = require('typs');
 
-var resources = [];
+var resources = {};
 var db_connection = null;
 
 var carpenter = {
@@ -15,17 +15,21 @@ var carpenter = {
 		db_connection = connection;
 	},
 	declareResource: function(resource) {
-		resources.push(resource);
+		resource.table = resource.table || resource.name;
+		resources[resource.name] = resource;
 		return carpenter;
 	},
 	exposeAPI: function(stringify) {
 		if (!typs(stringify).bool().check()) {
 			throw new Error('exposeAPI() expects a boolean as its first argument');
 		}
-		
-		return require('./exposeAPI.js').apply(stringify, resources, db_connection);
+		if (!typs(connection).instanceOf(require('mysql/lib/Connection')).check()) {
+			throw new Error('carpenter needs a database connection object to work. please provide one using setConnection()');
+		}
+		return require('./exposeAPI.js').apply(stringify, {resources, db_connection});
 	},
 	types: require('./types.js'),
+	error: require('./error.js')
 };
 
 module.exports = carpenter;
