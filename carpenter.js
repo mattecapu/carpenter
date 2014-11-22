@@ -26,11 +26,10 @@ var carpenter = {
 		if (!typs(connection).instanceOf(require('mysql/lib/Connection')).check()) {
 			throw new Error('carpenter needs a database connection object to work. please provide one using setConnection()');
 		}
-		return require('./exposeAPI.js').apply(stringify, {resources, db_connection});
+		return require('./exposeAPI.js')(stringify, {resources, db_connection});
 	},
 	types: require('./types.js'),
 	error: require('./error.js')
 };
 
 module.exports = carpenter;
-
