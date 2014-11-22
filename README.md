@@ -42,6 +42,8 @@ app = mach.stack();
 app.use(mach.params);
 
 app.map('/api/v1', function(req) {
+	// this actually returns a promise
+	// that's one of the reasons mach is a good router choice
 	return rest_api(req.pathInfo, req.method, req.params);
 });
 
