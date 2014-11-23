@@ -3,10 +3,44 @@
 	parses an URL following the JSON API format specification
 */
 
-var url_parser = require('url');
+var typs = require('typs');
 
-// full URL
-module.exports = function(url) {
+var jsonError = require('./error.js');
+var resourceExists = require('./assertResourceExists.js');
+
+var parse = function(resource_obj, query, context) {
+	// is the client asking for a particular subset of fields?
+	resource_obj.fields = resource_obj.fields || [];
+	var key = 'fields[' + resource_obj.resource + ']';
+	if (typs(query[key]).notNull().check()) {
+		resource_obj.fields = query[key].split(',');
+	} else {
+		// if not, add all fields
+		resource_obj.fields = Object.keys(context.resources[resource_obj.resource].type);
+	}
+
+	// is the client asking for a particular sorting?
+	resource_obj.sorters = resource_obj.sorters || [];
+	var key = 'sort[' + resource_obj.resource + ']';
+	if (typs(query[key]).notNull().check()) {
+		resource_obj.sorters = query[key].split(',').map((field) => {
+			return field[0] === '-' ? {field: field.replace('-', ''), asc: false} : {field, asc: true};
+		});
+	}
+
+	// is the client asking for a filtered response?
+	resource_obj.filters = resource_obj.filters || [];
+	Object.keys(context.resources[resource_obj.resource].type).forEach((field) => {
+		if (field === context.resources[resource_obj.resource].keys.primary) return;
+		var key = resource_obj.resource + '[' + field + ']';
+		if (!typs(query[key]).notNull().check()) resource_obj.filters.push({field, value: query[key]});
+	});
+
+	return resource_obj;
+};
+
+// 'url' is a *full* URL
+module.exports = function(url, context) {
 
 	var {path, query} = require('url').parse(url, true);
 
@@ -22,83 +56,49 @@ module.exports = function(url) {
 	// root resource (the first specified collection in the URL)
 	var root = {
 		resource: path[0],
-		ids: (path.length > 1 ? path[1].split(',') : 'any');
+		ids: (path.length > 1 ? path[1].split(',') : 'any')
 	};
+	assertResourceExists(root.resource, context);
 
 	// client is actually asking for a resource linked to the root resource?
 	if(path[2] === 'links') {
 		// if yes, it must specify what linked resource it wants
-		if (path.length === 3) throw new Error('invalid URL');
+		if (path.length === 3) {
+			throw new jsonError({
+				title: 'Bad request',
+				detail: 'Linked resource not specified',
+				status: 400
+			});
+		}
 		// that becomes the primary resource of the request
 		primary = {
 			resource: path[3],
 			ids: (path.length > 4 ? path[4].split(',') : 'any')
 		};
+		assertResourceExists(primary.resource, context);
 		// and the root resource is just an additional filter
-		primary.filters = [{field: 'id', values: root.resource.ids}];
+		// TODO: query the reverse relationship
 	} else {
 		// otherwise the root resource is also the primary resource
 		primary = root;
 	}
 
-	// is the client asking for specific fields?
-	if (typs(query.fields).notNull.check()) {
-		primary.fields = query.fields.split(',');
-		delete query.fields;
-	} else {
-		// if not, add all fields
-		primary.fields = Object.keys(context.resources[primary.resource].type);
-	}
+	query['fields[' + primary.resource +']'] = query.fields;
+	query['sort[' + primary.resource +']'] = query.sort;
+	delete query.sort;
+	delete query.fields;
 
-	// is the client asking for a specific sorting?
-	if (typs(query.sort).notNull().check()) {
-		primary.sorters = query.sort.split(',').map((field) => {
-			return field[0] === '-' ? {field: field.replace('-', ''), asc: false} : {field, asc: true};
-		});
-		delete query.sort;
-	}
-
-	// is the client asking for a filtered subset?
-	primary.filters = primary.filters || [];
-	Object.keys(context.resources[primary_resource].type).forEach((field) => {
-		if (field === 'id') return;
-		if (query[field] !== undefined) primary.filters.push({field, values: query[field]});
-	});
+	primary = parse(primary, query, context);
 	// anyway, we filter with the resource ID given (if given)
-	if (primary.ids !== 'any') primary.filters.id = primary.ids;
+	if (primary.ids !== 'any') primary.filters.push({field: context.resource[primary.resource].keys.primary, values: primary.ids});
 
 	// is the client asking also for linked resources?
 	if (typs(query.include).notNull().check()) {
 		// get all the resources and their constraints (see primary)
-		linked = query.include.split(',').map((linked_resource) => {
-			var linked = {resource: linked_resource};
-
-			linked.fields = [];
-			var key = 'fields[' + linked_resource + ']';
-			if (typs(query[key]).notNull().check()) {
-				linked.fields = query[key].split(',');
-				delete query[key];
-			}
-
-			linked.sorters = [];
-			var key = 'sort[' + linked_resource + ']';
-			if (typs(query[key]).notNull().check()) {
-				linked.sorters = query[key].split(',').map((field) => {
-					return field[0] === '-' ? {field: field.replace('-', ''), asc: false} : {field, asc: true};
-				});
-				delete query[key];
-			}
-
-			/*linked.filters = [];
-			Object.keys(context.resources[linked_resource].type).forEach((field) => {
-				if (field === 'id') return;
-				if (query[field] !== undefined) linked.filters.push({field, value: query[field]});
-			});*/
-
-			return linked;
+		linked = query.include.split(',').map((resource) => {
+			assertResourceExists(resource, context);
+			return parse({resource}, query, context);
 		});
-
-		delete query.include;
 	}
 
 	return {primary, linked};
