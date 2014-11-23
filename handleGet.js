@@ -15,6 +15,21 @@ var buildQuery = function(resource_request, context) {
 	main_query = resource_request.filters.reduce((query, {field, values}) => {
 		return query.where(field + ' IN (?)', values.join(','));
 	}, main_query);
+
+	if(resource_request.subset_from) {
+		main_query = main_query
+						.where(
+							context.resources[resource_request.resource].keys.primary + ' IN (?)',
+							squel.select()
+								.field(resource_request.subset_from.referenced_field)
+								.from(context.resources[resource_request.subset_from.resource].table)
+								.where(
+									context.resources[resource_request.subset_from.resource].keys.primary + ' IN (?)',
+									resource_request.subset_from.ids.join(',')
+								)
+						);
+	}
+
 	main_query = resource_request.sorters.forEach((query, {field, asc}) => {
 		return query.order(field, asc);
 	}, main_query);

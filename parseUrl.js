@@ -6,7 +6,7 @@
 var typs = require('typs');
 
 var jsonError = require('./error.js');
-var resourceExists = require('./assertResourceExists.js');
+var assertResourceExists = require('./assertResourceExists.js');
 
 var parse = function(resource_obj, query, context) {
 	// is the client asking for a particular subset of fields?
@@ -61,7 +61,7 @@ module.exports = function(url, context) {
 	assertResourceExists(root.resource, context);
 
 	// client is actually asking for a resource linked to the root resource?
-	if(path[2] === 'links') {
+	if (path[2] === 'links') {
 		// if yes, it must specify what linked resource it wants
 		if (path.length === 3) {
 			throw new jsonError({
@@ -70,14 +70,30 @@ module.exports = function(url, context) {
 				status: 400
 			});
 		}
+
+		// check what resource type the foreign reference specified is
+		// (length === 1 guaranteed by resource description validation)
+		var foreign = context.resources[root.resource].keys.foreign.filter((foreign) => {
+			if (foreign.filter === path[3]) return true;
+			return false;
+		})[0];
+		if (!typs(foreign).notNull().check()) {
+			throw new jsonError({
+				title: 'Bad request',
+				detail: 'The specified linked resource is not actually linked to \'' + root.resource + '\'',
+				status: 400
+			});
+		}
+
 		// that becomes the primary resource of the request
 		primary = {
-			resource: path[3],
+			resource: foreign.resource,
 			ids: (path.length > 4 ? path[4].split(',') : 'any')
 		};
 		assertResourceExists(primary.resource, context);
 		// and the root resource is just an additional filter
-		// TODO: query the reverse relationship
+		primary.subset_from = root;
+		primary.subset_from.referenced_field = foreign.filter;
 	} else {
 		// otherwise the root resource is also the primary resource
 		primary = root;
@@ -97,9 +113,19 @@ module.exports = function(url, context) {
 		// get all the resources and their constraints (see primary)
 		linked = query.include.split(',').map((resource) => {
 			assertResourceExists(resource, context);
+			var exist_reference = context.resource[primary.resource].keys.foreign.some((foreign) => {
+				return foreign.resource === resource;
+			});
+			if (!exist_reference) {
+				throw new jsonError({
+					title: 'Bad request',
+					detail: 'The specified linked resource is not actually linked to \'' + root.resource + '\'',
+					status: 400
+				});
+			}
 			return parse({resource}, query, context);
 		});
 	}
 
 	return {primary, linked};
-}
+};
