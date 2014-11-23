@@ -20,20 +20,20 @@ var db = require('./my-database-handler.js');
 carpenter.setConnection(db.connection());
 
 var rest_api = carpenter.declareResource({
-	name: 'users',
-	type: {
+	name: 'photos',
+	sql_table: 'photographs',
+	structure: {
 		id: carpenter.types.id,
-		email: carpenter.types.email,
-		name: carpenter.type.string.len({max: 30}),
-		best_friend: carpenter.types.id
+		title: carpenter.types.string.len({max: 30}),
+		author: {type: carpenter.types.id, sql_column: 'author_id'},
+		album: {type: carpenter.types.id, sql_column: 'album_id'}
 	},
 	keys: {
 		primary: 'id',
-		unique: ['email'],
-		foreign: [{
-			field: best_friend,
-			resource: 'users'
-		}]
+		foreigns: [
+			{field: 'author', resource: 'users'},
+			{field: 'album', resource: 'albums'}
+		]
 	},
 	methods: ['GET', 'POST', 'PUT', 'DELETE']
 }).exposeAPI();
