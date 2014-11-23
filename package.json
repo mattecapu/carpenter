@@ -2,7 +2,7 @@
   "name": "carpenter",
   "version": "0.0.0",
   "description": "Automagically generate a REST API from his declarative description",
-  "main": "carpenter.transpiled.js",
+  "main": "build/carpenter.transpiled.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
