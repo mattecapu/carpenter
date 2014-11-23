@@ -16,7 +16,7 @@ var parse = function(resource_obj, query, context) {
 		resource_obj.fields = query[key].split(',');
 	} else {
 		// if not, add all fields
-		resource_obj.fields = Object.keys(context.resources[resource_obj.resource].type);
+		resource_obj.fields = Object.keys(context.resources[resource_obj.resource].structure);
 	}
 
 	// is the client asking for a particular sorting?
@@ -30,7 +30,7 @@ var parse = function(resource_obj, query, context) {
 
 	// is the client asking for a filtered response?
 	resource_obj.filters = resource_obj.filters || [];
-	Object.keys(context.resources[resource_obj.resource].type).forEach((field) => {
+	Object.keys(context.resources[resource_obj.resource].structure).forEach((field) => {
 		if (field === context.resources[resource_obj.resource].keys.primary) return;
 		var key = resource_obj.resource + '[' + field + ']';
 		if (!typs(query[key]).notNull().check()) resource_obj.filters.push({field, value: query[key]});
@@ -73,8 +73,8 @@ module.exports = function(url, context) {
 
 		// check what resource type the foreign reference specified is
 		// (length === 1 guaranteed by resource description validation)
-		var foreign = context.resources[root.resource].keys.foreign.filter((foreign) => {
-			if (foreign.filter === path[3]) return true;
+		var foreign = context.resources[root.resource].keys.foreigns.filter((foreign) => {
+			if (foreign.field === path[3]) return true;
 			return false;
 		})[0];
 		if (!typs(foreign).notNull().check()) {
@@ -92,8 +92,8 @@ module.exports = function(url, context) {
 		};
 		assertResourceExists(primary.resource, context);
 		// and the root resource is just an additional filter
-		primary.subset_from = root;
-		primary.subset_from.referenced_field = foreign.filter;
+		primary.superset_from = root;
+		primary.superset_from.foreign = foreign;
 	} else {
 		// otherwise the root resource is also the primary resource
 		primary = root;
@@ -106,14 +106,14 @@ module.exports = function(url, context) {
 
 	primary = parse(primary, query, context);
 	// anyway, we filter with the resource ID given (if given)
-	if (primary.ids !== 'any') primary.filters.push({field: context.resource[primary.resource].keys.primary, values: primary.ids});
+	if (primary.ids !== 'any') primary.filters.push({field: context.resources[primary.resource].keys.primary, values: primary.ids});
 
 	// is the client asking also for linked resources?
 	if (typs(query.include).notNull().check()) {
 		// get all the resources and their constraints (see primary)
 		linked = query.include.split(',').map((resource) => {
 			assertResourceExists(resource, context);
-			var exist_reference = context.resource[primary.resource].keys.foreign.some((foreign) => {
+			var exist_reference = context.resource[primary.resource].keys.foreigns.some((foreign) => {
 				return foreign.resource === resource;
 			});
 			if (!exist_reference) {

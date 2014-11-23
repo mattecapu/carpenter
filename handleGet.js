@@ -8,30 +8,30 @@ var Promise = require('bluebird');
 var jsonError = require('./error.js');
 
 var buildQuery = function(resource_request, context) {
-	var main_query = squel.select().from(context.resources[resource_request.resource].table);
+	var main_query = squel.select().from(context.resources[resource_request.resource].sql_table);
 	main_query = resource_request.fields.reduce((query, field) => {
-		return query.field(field);
+		return query.field(context.resources[resource_request.resource].structure[field].sql_column);
 	}, main_query);
 	main_query = resource_request.filters.reduce((query, {field, values}) => {
-		return query.where(field + ' IN (?)', values.join(','));
+		return query.where(context.resources[resource_request.resource].structure[field].sql_column + ' IN (?)', values.join(','));
 	}, main_query);
 
-	if(resource_request.subset_from) {
+	if(resource_request.superset_from) {
 		main_query = main_query
 						.where(
 							context.resources[resource_request.resource].keys.primary + ' IN (?)',
 							squel.select()
-								.field(resource_request.subset_from.referenced_field)
-								.from(context.resources[resource_request.subset_from.resource].table)
+								.field(context.resources[resource_request.superset_from.resource].structure[resource_request.superset_from.foreign.field].sql_column)
+								.from(context.resources[resource_request.superset_from.resource].sql_table)
 								.where(
-									context.resources[resource_request.subset_from.resource].keys.primary + ' IN (?)',
-									resource_request.subset_from.ids.join(',')
+									context.resources[resource_request.superset_from.resource].keys.primary + ' IN (?)',
+									resource_request.superset_from.ids.join(',')
 								)
 						);
 	}
 
 	main_query = resource_request.sorters.forEach((query, {field, asc}) => {
-		return query.order(field, asc);
+		return query.order(context.resources[resource_request.resource].structure[field].sql_column, asc);
 	}, main_query);
 	return main_query;
 }

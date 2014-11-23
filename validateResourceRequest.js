@@ -10,7 +10,7 @@ module.exports = function(resource_request, context) {
 	
 	if (typs(resource_request.ids).notNull().check()) {
 		resource_request.ids.forEach((id) => {
-			if (typs(id).isnt(context.resources[resource_request.resource].type[context.resources[resource_request.resource].keys.primary])) {
+			if (typs(id).isnt(context.resources[resource_request.resource].structure[context.resources[resource_request.resource].keys.primary])) {
 				throw new jsonError({
 					title: 'Bad request',
 					detail: 'One or more ids specificed for the request are not \'' + resource_request.resource + '\' valid ids',
@@ -21,7 +21,7 @@ module.exports = function(resource_request, context) {
 	}
 
 	var all_fields_exists = resource_request.resource.fields.every((field) => {
-		return -1 !== Object.keys(context.resources[resource_request.resource].type).indexOf(field);
+		return -1 !== Object.keys(context.resources[resource_request.resource].structure).indexOf(field);
 	});
 	if (!all_fields_exists) {
 		throw new jsonError({
@@ -32,7 +32,7 @@ module.exports = function(resource_request, context) {
 	}
 
 	var all_filters_exists = resource_request.resource.filters.every(function({field, values}) {
-		return -1 !== Object.keys(context.resources[resource_request.resource].type).indexOf(field);
+		return -1 !== Object.keys(context.resources[resource_request.resource].structure).indexOf(field);
 	});
 	if (!all_filters_exists) {
 		throw new jsonError({
@@ -43,7 +43,7 @@ module.exports = function(resource_request, context) {
 	}
 
 	var all_sorters_exists = resource_request.resource.sorters.every(function({field, asc}) {
-		return -1 !== Object.keys(context.resources[resource_request.resource].type).indexOf(field);
+		return -1 !== Object.keys(context.resources[resource_request.resource].structure).indexOf(field);
 	});
 	if (!all_sorters_exists) {
 		throw new jsonError({
