@@ -6,22 +6,26 @@ module.exports = function(grunt) {
 				harmony: true
 			},
 			all: {
-				files: {
-					'typs-transpiled.js' : 'typs.js',
-					'test-transpiled.js' : 'test.js'
-				}
+				files: [{
+					expand: true,
+					//cwd: '/',
+					src: ['*.js', '!*.transpiled.js', '!Gruntfile.js'],
+					dest: 'build/',
+					ext: '.transpiled.js'
+				}]
 			}
 		},
 		watch: {
 			all: {
-				files: ['typs.js', 'test.js'],
-				tasks: ['react']
+				files: '<%= react.all.files[0].src %>',
+				tasks: ['newer:react']
 			}
 		}
 	});
 
 	grunt.loadNpmTasks('grunt-react');
 	grunt.loadNpmTasks('grunt-contrib-watch');
+	grunt.loadNpmTasks('grunt-newer');
 
 	grunt.registerTask('default', ['react']);
 };
