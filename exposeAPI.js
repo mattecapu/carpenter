@@ -7,6 +7,7 @@ var typs = require('typs');
 var Promise = require('bluebird');
 
 var parseUrl = require('./parseUrl.js');
+var validateResourceRequest = require('./validateResourceRequest.js');
 var jsonError = require('./error.js');
 
 var handlers = {
@@ -18,25 +19,28 @@ var handlers = {
 
 module.exports = function(stringify, context) {
 	return function(url, method, body) {
-
-		var response = null;
 		method = method.toUpperCase();
 
 		try {
-
 			if (!typs(body).notNull().object().notEmpty().check() && method === 'POST' && method === 'PUT') {
 				throw new jsonError({
-					title: 'Bad Request',
-					detail: method + ' method requires a non-empty JSON object',
+					title: 'Bad request',
+					detail: method + ' requests require a non-empty JSON object as the request body',
 					status: 400
 				});
 			}
 
-			return handlers[method](parseUrl(url), body, context).then(({response, status}) => {
+			var request = parseUrl(url, context);
+
+			validateResourceRequest(request.primary);
+			if (request.linked.length) {
+				request.linked.forEach(validateResourceRequest);
+			}
+
+			return handlers[method](request, body, context).then(function({response, status}) {
 				if (stringify) response = JSON.stringify(response);
 				return {response, status};
 			});
-
 		} catch (error) {
 			if (error instanceof Error) {
 				error = new jsonError({

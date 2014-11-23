@@ -16,4 +16,4 @@ module.exports = function({title, detail, status, code, href, links, path, id}) 
 	this.getErrorObject = function() {
 		return obj;
 	};
-}
+};
