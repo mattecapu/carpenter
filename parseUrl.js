@@ -5,7 +5,7 @@
 
 var typs = require('typs');
 
-var jsonError = require('./error.js');
+var jsonError = require('./jsonError.js');
 var assertResourceExists = require('./assertResourceExists.js');
 
 var parse = function(resource_obj, query, context) {
@@ -14,7 +14,7 @@ var parse = function(resource_obj, query, context) {
 	var key = 'fields[' + resource_obj.resource + ']';
 	if (typs(query[key]).notNull().check()) {
 		resource_obj.fields = query[key].split(',');
-	} else {
+	} else if (0 === resource_obj.fields.length) {
 		// if not, add all fields
 		resource_obj.fields = Object.keys(context.resources[resource_obj.resource].structure);
 	}
@@ -33,18 +33,24 @@ var parse = function(resource_obj, query, context) {
 	Object.keys(context.resources[resource_obj.resource].structure).forEach((field) => {
 		if (field === context.resources[resource_obj.resource].keys.primary) return;
 		var key = resource_obj.resource + '[' + field + ']';
-		if (!typs(query[key]).notNull().check()) resource_obj.filters.push({field, value: query[key]});
+		if (typs(query[key]).notNull().check()) resource_obj.filters.push({field, value: query[key].split(',')});
 	});
+
+	if (resource_obj.ids && resource_obj.ids[0] !== 'any') {
+		resource_obj.filters.push({
+			field: context.resources[resource_obj.resource].keys.primary,
+			values: resource_obj.ids
+		});
+	}
 
 	return resource_obj;
 };
 
 // 'url' is a *full* URL
-module.exports = function(url, context) {
+module.exports = function(path, query, context) {
 
-	var {path, query} = require('url').parse(url, true);
-
-	// split the url and trim empty parts
+	// split the path and trim empty parts
+	path = path.split('/');
 	if (path[0] === '') path.shift();
 	if (path[path.length - 1] === '') path.pop();
 
@@ -56,7 +62,7 @@ module.exports = function(url, context) {
 	// root resource (the first specified collection in the URL)
 	var root = {
 		resource: path[0],
-		ids: (path.length > 1 ? path[1].split(',') : 'any')
+		ids: (path.length > 1 ? path[1].split(',') : ['any'])
 	};
 	assertResourceExists(root.resource, context);
 
@@ -73,11 +79,8 @@ module.exports = function(url, context) {
 
 		// check what resource type the foreign reference specified is
 		// (length === 1 guaranteed by resource description validation)
-		var foreign = context.resources[root.resource].keys.foreigns.filter((foreign) => {
-			if (foreign.field === path[3]) return true;
-			return false;
-		})[0];
-		if (!typs(foreign).notNull().check()) {
+		var foreign = context.resources[root.resource].keys.foreigns.filter((f) => f.field === path[3])[0];
+		if (typs(foreign).Null().check()) {
 			throw new jsonError({
 				title: 'Bad request',
 				detail: 'The specified linked resource is not actually linked to \'' + root.resource + '\'',
@@ -88,42 +91,46 @@ module.exports = function(url, context) {
 		// that becomes the primary resource of the request
 		primary = {
 			resource: foreign.resource,
-			ids: (path.length > 4 ? path[4].split(',') : 'any')
+			ids: (path.length > 4 ? path[4].split(',') : ['any']),
+			superset: {
+				request: parse(root, {}, context),
+				foreign: foreign
+			}
 		};
 		assertResourceExists(primary.resource, context);
-		// and the root resource is just an additional filter
-		primary.superset_from = root;
-		primary.superset_from.foreign = foreign;
 	} else {
 		// otherwise the root resource is also the primary resource
 		primary = root;
 	}
 
-	query['fields[' + primary.resource +']'] = query.fields;
-	query['sort[' + primary.resource +']'] = query.sort;
+	if (typs(query['fields[' + primary.resource +']']).Null().check()) query['fields[' + primary.resource +']'] = query.fields;
+	if (typs(query['sort[' + primary.resource +']']).Null().check()) query['sort[' + primary.resource +']'] = query.sort;
 	delete query.sort;
 	delete query.fields;
 
 	primary = parse(primary, query, context);
-	// anyway, we filter with the resource ID given (if given)
-	if (primary.ids !== 'any') primary.filters.push({field: context.resources[primary.resource].keys.primary, values: primary.ids});
 
 	// is the client asking also for linked resources?
 	if (typs(query.include).notNull().check()) {
 		// get all the resources and their constraints (see primary)
-		linked = query.include.split(',').map((resource) => {
-			assertResourceExists(resource, context);
-			var exist_reference = context.resource[primary.resource].keys.foreigns.some((foreign) => {
-				return foreign.resource === resource;
-			});
-			if (!exist_reference) {
+		linked = query.include.split(',').map((foreign) => {
+			// we fetch the foreign the request is referring to, if it doesn't exist, we fire an error
+			// (resource existence is already checked at declaration-time as part of foreign-keys validation)
+			foreign = context.resources[primary.resource].keys.foreigns.filter((f) => f.field === foreign)[0];
+			if (typs(foreign).Null().check()) {
 				throw new jsonError({
 					title: 'Bad request',
-					detail: 'The specified linked resource is not actually linked to \'' + root.resource + '\'',
+					detail: '\'' + foreign + '\' is not a link of \'' + root.resource + '\'',
 					status: 400
 				});
 			}
-			return parse({resource}, query, context);
+
+			return {
+				resource: foreign.resource,
+				superset: {request: primary, foreign}
+			};
+		}).map((resource) => {
+			return parse(resource, query, context);
 		});
 	}
 

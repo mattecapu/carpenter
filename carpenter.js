@@ -17,7 +17,7 @@ function Carpenter() {
 	this.declareResource = function(resource) {
 		resource.sql_table = resource.sql_table || resource.name;
 		resource.methods = resource.methods.map((method) => method.toUpperCase());
-		
+
 		var inFieldsType = typs().string().notEmpty().satisfies((field) => {
 			return -1 !== Object.keys(resource.structure).indexOf(field);
 		});
@@ -25,34 +25,33 @@ function Carpenter() {
 			return -1 !== Object.keys(resources).indexOf(resource);
 		});
 		
-		var valid = typs(resource).is({
+		var resourceType = {
 			name: typs().string().notEmpty(),
 			sql_table: typs().string().notEmpty(),
 			structure: typs().object().satisfies((structure) => {
 					// converts the shortcut {'field': 'type'} to the extended description
 					Object.keys(structure).forEach((key) => {
-						if (typs(structure[key]).isType().check()) {
+						if (typs(structure[key]).type().check()) {
 							structure[key] = {type: structure[key], sql_column: key};
 						}
 					});
-					
 					// checks if all the fields are now in the form {type: 'type', sql_column: 'field'}
 					var type_valid = Object.keys(structure).every((key) => {
 						return typs(structure[key]).is({
-							type: typs().isType(),
+							type: typs().type(),
 							sql_column: typs().string().notEmpty()
 						});
 					});
 					if (!type_valid) return false;
-					
+
 					// checks if there are conflicts among 'sql_column's
 					return Object.keys(structure)
 							.map((key) => structure[key].sql_column)
 							.every((column, i, array) => array.indexOf(column) === array.lastIndexOf(column));
 			}),
-			keys: typs().object().is({
+			keys: typs().object().match({
 				primary: inFieldsType,
-				foreign: typs().isAny([
+				foreign: typs().matchAny([
 					typs().Null(),
 					typs().array().notEmpty().satisfies((foreigns) => {
 						var foreign_fields = foreigns.map((foreign) => foreign.field);
@@ -69,12 +68,10 @@ function Carpenter() {
 				])
 			}),
 			methods: typs().array().notEmpty().satisfies((methods) => methods.every((method) => -1 !== ['GET', 'PUT', 'POST', 'DELETE'].indexOf(method)))
-		});
-		
-		// TODO: validate resource
-		// constraints:
-		// * type checking on all the object
-		// * foreign keys must have all different fields
+		};
+
+		if(!typs(resource).is(resourceType)) throw new Error('resource description is not valid');
+
 		resources[resource.name] = resource;
 		return this;
 	};
@@ -82,13 +79,13 @@ function Carpenter() {
 		if (!typs(stringify).bool().check()) {
 			throw new Error('exposeAPI() expects a boolean as its first argument');
 		}
-		if (!typs(connection).instanceOf(require('mysql/lib/Connection')).check()) {
+		if (!typs(db_connection).instanceOf(require('mysql/lib/Connection')).check()) {
 			throw new Error('carpenter needs a database connection object to work. please provide one using setConnection()');
 		}
 		return require('./exposeAPI.js')(stringify, {resources, db_connection});
 	};
-	this.types = require('./types.js');
-	this.jsonError = require('./error.js');
 };
 
-module.exports = new Carpenter();
+module.exports.types = require('./types.js');
+module.exports.jsonError = require('./jsonError.js');
+module.exports.get = () => new Carpenter();

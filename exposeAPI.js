@@ -8,7 +8,7 @@ var Promise = require('bluebird');
 
 var parseUrl = require('./parseUrl.js');
 var validateResourceRequest = require('./validateResourceRequest.js');
-var jsonError = require('./error.js');
+var jsonError = require('./jsonError.js');
 
 var handlers = {
 	'GET': require('./handleGet.js'),
@@ -30,13 +30,13 @@ module.exports = function(stringify, context) {
 				});
 			}
 
-			var request = parseUrl(url, context);
+			var request = parseUrl(url, body, context);
 
-			validateResourceRequest(request.primary);
+			validateResourceRequest(request.primary, context);
+
 			if (request.linked.length) {
-				request.linked.forEach(validateResourceRequest);
+				request.linked.forEach((linked) => validateResourceRequest(linked, context));
 			}
-
 			return handlers[method](request, body, context).then(function({response, status}) {
 				if (stringify) response = JSON.stringify(response);
 				return {response, status};
@@ -44,12 +44,16 @@ module.exports = function(stringify, context) {
 		} catch (error) {
 			if (error instanceof Error) {
 				error = new jsonError({
-					detail: error.message
+					detail: error.message,
+					status: 400
 				});
 			} else if (!(error instanceof jsonError)) {
-				error = new jsonError({});
+				error = new jsonError({
+					title: 'unknown error',
+					status: 500
+				});
 			}
-			return Promise.resolve({response: {error}, status: error.status});
+			return Promise.reject({response: {error: error.object}, status: error.status});
 		}
 	};
 };
