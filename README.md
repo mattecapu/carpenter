@@ -46,13 +46,13 @@ app.map('/api/v1', function(req) {
 	// that's one of the reasons mach is a good router choice
 	return rest_api(req.pathInfo, req.method, req.params);
 });
-
 ```
 Now the server is capable of handling any of these requests
-* `GET /users`
-* `GET /users/1`
-* `GET /users/1/linked/best_friend`
-* `GET /users/1?fields=name`
+* `GET /photos`
+* `GET /photos/1`
+* `GET /photos/1/links/author`
+* `GET /photos/1?fields=title,album`
+* `GET /photos/1?include=album&fields[albums]=id,name
 * `POST /users   {email: 'foo@bar.com', name: 'Foo Bar', best_friend: 1}`
 * and almost every other possible request made in the limits of the [JSON API format](http://jsonapi.org/format/)
 
