@@ -4,10 +4,11 @@
 
 var typs = require('typs');
 
-var jsonError = require('./error.js');
+var jsonError = require('./jsonError.js');
 
 module.exports = function(resource, context) {
-	if (!typs(context.resources[resource]).notNull().check()) {
+	if (typs(context.resources[resource]).Null().check()) {
+		console.log(resource, 'doesn\'t exist!');
 		throw new jsonError({
 			title: 'Resource not found',
 			detail: '\'' + resource + '\' doesn\'t exist',

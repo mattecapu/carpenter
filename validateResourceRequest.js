@@ -3,14 +3,17 @@
 */
 
 var typs = require('typs');
+
 var assertResourceExists = require('./assertResourceExists.js');
+var jsonError = require('./jsonError.js');
 
 module.exports = function(resource_request, context) {
 	assertResourceExists(resource_request.resource, context);
-	
+
 	if (typs(resource_request.ids).notNull().check()) {
 		resource_request.ids.forEach((id) => {
-			if (typs(id).isnt(context.resources[resource_request.resource].structure[context.resources[resource_request.resource].keys.primary])) {
+			if (id === 'any') return;
+			if (typs(id).isnt(context.resources[resource_request.resource].structure[context.resources[resource_request.resource].keys.primary].type)) {
 				throw new jsonError({
 					title: 'Bad request',
 					detail: 'One or more ids specificed for the request are not \'' + resource_request.resource + '\' valid ids',
@@ -20,7 +23,7 @@ module.exports = function(resource_request, context) {
 		});
 	}
 
-	var all_fields_exists = resource_request.resource.fields.every((field) => {
+	var all_fields_exists = resource_request.fields.every((field) => {
 		return -1 !== Object.keys(context.resources[resource_request.resource].structure).indexOf(field);
 	});
 	if (!all_fields_exists) {
@@ -31,7 +34,7 @@ module.exports = function(resource_request, context) {
 		});
 	}
 
-	var all_filters_exists = resource_request.resource.filters.every(function({field, values}) {
+	var all_filters_exists = resource_request.filters.every(function({field, values}) {
 		return -1 !== Object.keys(context.resources[resource_request.resource].structure).indexOf(field);
 	});
 	if (!all_filters_exists) {
@@ -42,7 +45,7 @@ module.exports = function(resource_request, context) {
 		});
 	}
 
-	var all_sorters_exists = resource_request.resource.sorters.every(function({field, asc}) {
+	var all_sorters_exists = resource_request.sorters.every(function({field, asc}) {
 		return -1 !== Object.keys(context.resources[resource_request.resource].structure).indexOf(field);
 	});
 	if (!all_sorters_exists) {
