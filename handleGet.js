@@ -78,6 +78,7 @@ module.exports = function (request, body, context) {
 
 			response.linked = {};
 			results.forEach((result, i) => {
+				if (0 === results[i].rows.length) return;
 				response.linked[request.linked[i].resource] = results[i].rows.length > 1 ? results[i].rows : results[i].rows[0];
 			});
 		}
