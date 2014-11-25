@@ -31,9 +31,8 @@ var parse = function(resource_obj, query, context) {
 	// is the client asking for a filtered response?
 	resource_obj.filters = resource_obj.filters || [];
 	Object.keys(context.resources[resource_obj.resource].structure).forEach((field) => {
-		if (field === context.resources[resource_obj.resource].keys.primary) return;
 		var key = resource_obj.resource + '[' + field + ']';
-		if (typs(query[key]).notNull().check()) resource_obj.filters.push({field, value: query[key].split(',')});
+		if (typs(query[key]).notNull().check()) resource_obj.filters.push({field, values: query[key].split(',')});
 	});
 
 	if (resource_obj.ids && resource_obj.ids[0] !== 'any') {
@@ -103,10 +102,17 @@ module.exports = function(path, query, context) {
 		primary = root;
 	}
 
+	// for this parameteres, the name of the primary resource can be omitted if it's the only one in the response
 	if (typs(query['fields[' + primary.resource +']']).Null().check()) query['fields[' + primary.resource +']'] = query.fields;
 	if (typs(query['sort[' + primary.resource +']']).Null().check()) query['sort[' + primary.resource +']'] = query.sort;
 	delete query.sort;
 	delete query.fields;
+	Object.keys(context.resources[primary.resource].structure).forEach((field) => {
+		if ('include' === field || 'fields' === field) return;
+		var key = primary.resource + '[' + field + ']';
+		if (typs(query[key]).Null().check()) query[key] = query[field];
+		delete query[field];
+	});
 
 	primary = parse(primary, query, context);
 

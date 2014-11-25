@@ -34,7 +34,7 @@ module.exports = function(resource_request, context) {
 		});
 	}
 
-	var all_filters_exists = resource_request.filters.every(function({field, values}) {
+	var all_filters_exists = resource_request.filters.every(function({field}) {
 		return -1 !== Object.keys(context.resources[resource_request.resource].structure).indexOf(field);
 	});
 	if (!all_filters_exists) {
