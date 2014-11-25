@@ -1,6 +1,9 @@
 # source files
 *.js
 
+# dummy test files
+test.js
+
 # dev files
 Gruntfile.js
 .gitignore

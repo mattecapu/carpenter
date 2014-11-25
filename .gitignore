@@ -1,6 +1,9 @@
 # build files
 build
 
+# dummy test files
+test.js
+
 # installation files
 node_modules
 npm-debug.log
