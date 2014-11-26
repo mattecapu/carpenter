@@ -30,13 +30,26 @@ module.exports = function(stringify, context) {
 				});
 			}
 
+			// parse the request URL and builds an intermediate representation
+			// (a request object)
 			var request = parseUrl(url, body, context);
 
-			validateResourceRequest(request.primary, context);
+			// is method supported by the primary resource? we hope so
+			if (-1 === context.resources[request.primary.resource].methods.indexOf(method)) {
+				throw new jsonError({
+					title: 'Method not supported',
+					detail: method + ' requests are not supported for this end-point',
+					status: 405
+				});
+			}
 
+			// let's check it's all ok with the request
+			validateResourceRequest(request.primary, context);
 			if (request.linked.length) {
 				request.linked.forEach((linked) => validateResourceRequest(linked, context));
 			}
+
+			// pass the request object to a method-specific handler
 			return handlers[method](request, body, context).then(function({response, status}) {
 				if (stringify) response = JSON.stringify(response);
 				return {response, status};
