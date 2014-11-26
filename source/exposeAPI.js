@@ -34,6 +34,10 @@ module.exports = function(stringify, context) {
 			// (a request object)
 			var request = parseUrl(url, body, context);
 
+			// let's check it's all ok with the request
+			validateResourceRequest(request.primary, context);
+			request.linked.forEach((linked) => validateResourceRequest(linked, context));
+			
 			// is method supported by the primary resource? we hope so
 			if (-1 === context.resources[request.primary.resource].methods.indexOf(method)) {
 				throw new jsonError({
@@ -41,12 +45,6 @@ module.exports = function(stringify, context) {
 					detail: method + ' requests are not supported for this end-point',
 					status: 405
 				});
-			}
-
-			// let's check it's all ok with the request
-			validateResourceRequest(request.primary, context);
-			if (request.linked.length) {
-				request.linked.forEach((linked) => validateResourceRequest(linked, context));
 			}
 
 			// pass the request object to a method-specific handler
