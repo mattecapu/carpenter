@@ -1,3 +1,5 @@
+var js_files = ['*.js', '!Gruntfile.js', '!test.js'];
+
 module.exports = function(grunt) {
 	grunt.initConfig({
 		pkg: grunt.file.readJSON('package.json'),
@@ -8,16 +10,15 @@ module.exports = function(grunt) {
 			all: {
 				files: [{
 					expand: true,
-					//cwd: '/',
-					src: ['*.js', '!*.transpiled.js', '!Gruntfile.js'],
+					src: js_files,
 					dest: 'build/',
-					ext: '.transpiled.js'
+					ext: '.js'
 				}]
 			}
 		},
 		watch: {
 			all: {
-				files: '<%= react.all.files[0].src %>',
+				files: js_files,
 				tasks: ['newer:react']
 			}
 		}
