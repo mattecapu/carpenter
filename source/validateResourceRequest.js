@@ -7,7 +7,7 @@ var typs = require('typs');
 var assertResourceExists = require('./assertResourceExists.js');
 var jsonError = require('./jsonError.js');
 
-module.exports = function(resource_request, context) {
+var validateResourceRequest = function(resource_request, context) {
 	assertResourceExists(resource_request.resource, context);
 
 	if (typs(resource_request.ids).notNull().check()) {
@@ -56,3 +56,5 @@ module.exports = function(resource_request, context) {
 		});
 	}
 };
+
+module.exports = validateResourceRequest;
