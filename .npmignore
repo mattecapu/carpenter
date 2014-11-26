@@ -1,5 +1,5 @@
 # source files
-*.js
+source
 
 # dummy test files
 test.js
