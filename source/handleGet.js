@@ -5,14 +5,24 @@
 var squel = require('squel');
 var Promise = require('bluebird');
 
-var jsonError = require('./jsonError.js');
 var filterBy = require('./filterBy.js');
+
+
+var buildQuery = function(resource_request, context) {
+	var main_query = filterBy(squel.select(), resource_request, context);
+
+	main_query = resource_request.fields.reduce((query, field) => {
+		return query.field(context.resources[resource_request.resource].structure[field].sql_column, field);
+	}, main_query);
+
+	return main_query;
+};
 
 module.exports = function (request, body, context) {
 	squel.useFlavour('mysql');
 
-	var primary_query = filterBy(squel.select(), request.primary, context);
-	var linked_queries = request.linked.map((linked) => filterBy(squel.select(), linked, context));
+	var primary_query = buildQuery(request.primary, context);
+	var linked_queries = request.linked.map((linked) => buildQuery(linked, context));
 
 	var promises = [].concat.apply([primary_query], [linked_queries]).map((query) => context.callQuery(query));
 
@@ -20,7 +30,7 @@ module.exports = function (request, body, context) {
 		return result.length > 1 ? result : result[0];
 	}
 
-	return Promise.all(promises).then((results) => {
+	return Promise.all(promises).map((res) => res[0]).then((results) => {
 		var response = {};
 
 		if (0 === results[0].length) return {response, status: 404}

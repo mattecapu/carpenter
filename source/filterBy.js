@@ -6,11 +6,14 @@
 var squel = require('squel');
 
 var filterBy = function(main_query, resource_request, context) {
-	main_query = main_query.from(context.resources[resource_request.resource].sql_table, resource_request.resource);
+	// there's a problem with squel handling table aliases
+	// in DELETE statements, so until they fix it we'll do like this
+	if (main_query instanceof squel.cls.Select) {
+		main_query = main_query.from(context.resources[resource_request.resource].sql_table, resource_request.resource);
+	} else {
+		main_query = main_query.from(context.resources[resource_request.resource].sql_table);
+	}
 
-	main_query = resource_request.fields.reduce((query, field) => {
-		return query.field(context.resources[resource_request.resource].structure[field].sql_column, field);
-	}, main_query);
 	main_query = resource_request.filters.reduce((query, {field, values}) => {
 		return query.where(context.resources[resource_request.resource].structure[field].sql_column + ' IN ?', values);
 	}, main_query);

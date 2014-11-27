@@ -30,8 +30,9 @@ function Carpenter() {
 			// handle everything else as default
 			return next();
 		};
+		console.log(sql.toString());
 		var {text, values} = sql.toParam();
-		return query_fn({sql: text, typeCast: bit_casting}, values).spread((rows, stats) => rows);
+		return query_fn({sql: text, typeCast: bit_casting}, values);
 	};
 
 	// resources descriptions
