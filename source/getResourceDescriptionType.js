@@ -4,7 +4,8 @@
 
 var typs = require('typs');
 
-module.exports = function(resource, context) {
+
+ var getResourceDescriptionType = function (resource, context) {
 	var inFieldsType = typs().string().notEmpty().satisfies((field) => {
 		return -1 !== Object.keys(resource.structure).indexOf(field);
 	});
@@ -66,3 +67,5 @@ module.exports = function(resource, context) {
 
 	return resourceDescriptionType;
 };
+
+module.exports = getResourceDescriptionType;

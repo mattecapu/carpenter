@@ -8,7 +8,8 @@ var typs = require('typs');
 var jsonError = require('./jsonError.js');
 var assertResourceExists = require('./assertResourceExists.js');
 
-var parse = function(resource_obj, query, context) {
+
+var parse = function (resource_obj, query, context) {
 	// is the client asking for a particular subset of fields?
 	resource_obj.fields = resource_obj.fields || [];
 	var key = 'fields[' + resource_obj.resource + ']';
@@ -46,7 +47,7 @@ var parse = function(resource_obj, query, context) {
 };
 
 // 'url' is a *full* URL
-module.exports = function(path, query, context) {
+var parseUrl = function (path, query, context) {
 
 	// split the path and trim empty parts
 	path = path.split('/');
@@ -142,3 +143,5 @@ module.exports = function(path, query, context) {
 
 	return {primary, linked};
 };
+
+module.exports = parseUrl;

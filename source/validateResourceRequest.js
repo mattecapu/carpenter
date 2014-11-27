@@ -7,7 +7,7 @@ var typs = require('typs');
 var assertResourceExists = require('./assertResourceExists.js');
 var jsonError = require('./jsonError.js');
 
-var validateResourceRequest = function(resource_request, context) {
+var validateResourceRequest = function (resource_request, context) {
 	assertResourceExists(resource_request.resource, context);
 
 	if (typs(resource_request.ids).notNull().check()) {
@@ -34,7 +34,7 @@ var validateResourceRequest = function(resource_request, context) {
 		});
 	}
 
-	var all_filters_exists = resource_request.filters.every(function({field}) {
+	var all_filters_exists = resource_request.filters.every(function ({field}) {
 		return -1 !== Object.keys(context.resources[resource_request.resource].structure).indexOf(field);
 	});
 	if (!all_filters_exists) {
@@ -45,7 +45,7 @@ var validateResourceRequest = function(resource_request, context) {
 		});
 	}
 
-	var all_sorters_exists = resource_request.sorters.every(function({field, asc}) {
+	var all_sorters_exists = resource_request.sorters.every(function ({field, asc}) {
 		return -1 !== Object.keys(context.resources[resource_request.resource].structure).indexOf(field);
 	});
 	if (!all_sorters_exists) {

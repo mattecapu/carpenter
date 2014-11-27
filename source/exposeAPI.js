@@ -1,6 +1,6 @@
 /*!
 	exposeAPI()
-	return a function that consumes an URL and a body and returns a response
+	returns a function that consumes an URL and a body and returns a response
 */
 
 var typs = require('typs');
@@ -17,8 +17,9 @@ var handlers = {
 	'DELETE': require('./handleDelete.js')
 };
 
-module.exports = function(stringify, context) {
-	return function(url, method, body) {
+
+var exposeAPI = function (stringify, context) {
+	return function (url, method, body) {
 		method = method.toUpperCase();
 
 		try {
@@ -48,7 +49,7 @@ module.exports = function(stringify, context) {
 			}
 
 			// pass the request object to a method-specific handler
-			return handlers[method](request, body, context).then(function({response, status}) {
+			return handlers[method](request, body, context).then(function ({response, status}) {
 				if (stringify) response = JSON.stringify(response);
 				return {response, status};
 			});
@@ -68,3 +69,5 @@ module.exports = function(stringify, context) {
 		}
 	};
 };
+
+module.exports = exposeAPI;

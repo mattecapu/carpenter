@@ -8,7 +8,7 @@ var Promise = require('bluebird');
 var filterBy = require('./filterBy.js');
 
 
-module.exports = function (request, body, context) {
+var handleDelete = function (request, body, context) {
 	squel.useFlavour('mysql');
 
 	return context.callQuery(
@@ -21,3 +21,5 @@ module.exports = function (request, body, context) {
 		}
 	});
 };
+
+module.exports = handleDelete;

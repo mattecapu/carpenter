@@ -6,7 +6,7 @@ var typs = require('typs');
 
 var jsonError = require('./jsonError.js');
 
-var assertResourceExists = function(resource, context) {
+var assertResourceExists = function (resource, context) {
 	if (typs(context.resources[resource]).Null().check()) {
 		throw new jsonError({
 			title: 'Resource not found',

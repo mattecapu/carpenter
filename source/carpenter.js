@@ -7,11 +7,12 @@ var typs = require('typs');
 var getResourceDescriptionType = require('./getResourceDescriptionType.js');
 var exposeAPI = require('./exposeAPI.js');
 
+
 function Carpenter() {
 	// query function
 	var query_fn = null;
 
-	this.setQuery = function(fn) {
+	this.setQuery = function (fn) {
 		if (typs(fn).func().doesntCheck()) {
 			throw new Error('setQuery() expects a mysql Connection object as its first parameter');
 		}
@@ -20,7 +21,7 @@ function Carpenter() {
 
 		return this;
 	};
-	this.callQuery = function(sql) {
+	this.callQuery = function (sql) {
 		var bit_casting = function (field, next) {
 			// handle only BIT(1)
 			if (field.type === 'BIT' && field.length === 1) {
@@ -38,7 +39,7 @@ function Carpenter() {
 	// resources descriptions
 	this.resources = {};
 	// validates and then adds a new resource to the API
-	this.declareResource = function(description) {
+	this.declareResource = function (description) {
 		description.sql_table = description.sql_table || description.name;
 		description.methods = description.methods.map((method) => method.toUpperCase());
 
@@ -49,7 +50,7 @@ function Carpenter() {
 		this.resources[description.name] = description;
 		return this;
 	};
-	this.exposeAPI = function(stringify) {
+	this.exposeAPI = function (stringify) {
 		if (typs(stringify).bool().doesntCheck()) {
 			throw new Error('exposeAPI() expects a boolean as its first argument');
 		}

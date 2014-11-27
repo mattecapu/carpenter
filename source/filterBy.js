@@ -5,7 +5,8 @@
 
 var squel = require('squel');
 
-var filterBy = function(main_query, resource_request, context) {
+
+var filterBy = function (main_query, resource_request, context) {
 	// there's a problem with squel handling table aliases
 	// in DELETE statements, so until they fix it we'll do like this
 	if (main_query instanceof squel.cls.Select) {

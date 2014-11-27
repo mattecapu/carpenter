@@ -8,7 +8,7 @@ var Promise = require('bluebird');
 var filterBy = require('./filterBy.js');
 
 
-var buildQuery = function(resource_request, context) {
+var buildQuery = function (resource_request, context) {
 	var main_query = filterBy(squel.select(), resource_request, context);
 
 	main_query = resource_request.fields.reduce((query, field) => {
@@ -18,7 +18,7 @@ var buildQuery = function(resource_request, context) {
 	return main_query;
 };
 
-module.exports = function (request, body, context) {
+var handleGet = function (request, body, context) {
 	squel.useFlavour('mysql');
 
 	var primary_query = buildQuery(request.primary, context);
@@ -26,7 +26,7 @@ module.exports = function (request, body, context) {
 
 	var promises = [].concat.apply([primary_query], [linked_queries]).map((query) => context.callQuery(query));
 
-	var buildResponse = function(result) {
+	var buildResponse = function (result) {
 		return result.length > 1 ? result : result[0];
 	}
 
@@ -46,3 +46,5 @@ module.exports = function (request, body, context) {
 		return {response, status: 200};
 	});
 };
+
+module.exports = handleGet;

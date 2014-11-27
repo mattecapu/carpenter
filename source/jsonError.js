@@ -2,7 +2,7 @@
 	JSON API Error object
 */
 
-module.exports = function({title, detail, status, code, href, links, path, id}) {
+var jsonError = function ({title, detail, status, code, href, links, path, id}) {
 	this.object = {
 		title: title || 'Error',
 		detail: detail || 'A unspecified error was fired by the application',
@@ -14,3 +14,5 @@ module.exports = function({title, detail, status, code, href, links, path, id}) 
 		id: id
 	}
 };
+
+module.exports = jsonError;
