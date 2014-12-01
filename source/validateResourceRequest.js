@@ -2,10 +2,13 @@
 	Validate a resource request
 */
 
+
 var typs = require('typs');
 
 var assertResourceExists = require('./assertResourceExists.js');
+var allFieldsExist = require('./allFieldsExist.js');
 var jsonError = require('./jsonError.js');
+
 
 var validateResourceRequest = function (resource_request, context) {
 	assertResourceExists(resource_request.resource, context);
@@ -23,10 +26,7 @@ var validateResourceRequest = function (resource_request, context) {
 		});
 	}
 
-	var all_fields_exists = resource_request.fields.every((field) => {
-		return -1 !== Object.keys(context.resources[resource_request.resource].structure).indexOf(field);
-	});
-	if (!all_fields_exists) {
+	if (!allFieldsExist(resource_request.fields, resource_request.resource, context)) {
 		throw new jsonError({
 			title: 'Unknown fields',
 			detail: 'One or more fields requested don\'t belong to \'' + resource_request.resource + '\' resource',
@@ -34,10 +34,8 @@ var validateResourceRequest = function (resource_request, context) {
 		});
 	}
 
-	var all_filters_exists = resource_request.filters.every(function ({field}) {
-		return -1 !== Object.keys(context.resources[resource_request.resource].structure).indexOf(field);
-	});
-	if (!all_filters_exists) {
+	var filters_fields = resource_request.filters.map((f) => f.field);
+	if (!allFieldsExist(filters_fields, resource_request.resource, context)) {
 		throw new jsonError({
 			title: 'Unknown fields',
 			detail: 'One or more fields in the requested filters don\'t belong to \'' + resource_request.resource + '\' resource',
@@ -45,10 +43,8 @@ var validateResourceRequest = function (resource_request, context) {
 		});
 	}
 
-	var all_sorters_exists = resource_request.sorters.every(function ({field, asc}) {
-		return -1 !== Object.keys(context.resources[resource_request.resource].structure).indexOf(field);
-	});
-	if (!all_sorters_exists) {
+	var sorters_fields = resource_request.sorters.map((f) => f.field);
+	if (!allFieldsExist(sorters_fields, resource_request.resource, context)) {
 		throw new jsonError({
 			title: 'Unknown fields',
 			detail: 'One or more fields in the requested sorters don\'t belong to \'' + resource_request.resource + '\' resource',
