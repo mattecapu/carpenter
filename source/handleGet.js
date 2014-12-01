@@ -2,6 +2,7 @@
 	GET requests handler
 */
 
+
 var squel = require('squel');
 var Promise = require('bluebird');
 
@@ -9,13 +10,13 @@ var filterBy = require('./filterBy.js');
 
 
 var buildQuery = function (resource_request, context) {
-	var main_query = filterBy(squel.select(), resource_request, context);
+	var query = filterBy(squel.select(), resource_request, context);
 
-	main_query = resource_request.fields.reduce((query, field) => {
-		return query.field(context.resources[resource_request.resource].structure[field].sql_column, field);
-	}, main_query);
+	resource_request.fields.forEach((field) => {
+		query = query.field(context.resources[resource_request.resource].structure[field].sql_column, field);
+	});
 
-	return main_query;
+	return query;
 };
 
 var handleGet = function (request, body, context) {
