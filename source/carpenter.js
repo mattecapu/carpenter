@@ -2,7 +2,10 @@
 	Main file!
 */
 
+
 var typs = require('typs');
+
+var jsonError = require('./jsonError.js');
 
 var getResourceDescriptionType = require('./getResourceDescriptionType.js');
 var exposeAPI = require('./exposeAPI.js');
@@ -31,9 +34,27 @@ function Carpenter() {
 			// handle everything else as default
 			return next();
 		};
-		console.log(sql.toString());
+
 		var {text, values} = sql.toParam();
-		return query_fn({sql: text, typeCast: bit_casting}, values);
+		return query_fn({sql: text, typeCast: bit_casting}, values).catch((error) => {
+			switch(error.cause.code) {
+				case 'ER_NO_REFERENCED_ROW':
+					throw new jsonError({
+						title: 'Schema exception',
+						detail: 'The record you are adding/updating makes a foreign key fail'
+					});
+				case 'ER_DUP_ENTRY':
+					throw new jsonError({
+						title: 'Schema exception',
+						detail: 'The record you are adding/updating makes a unique key fail'
+					});
+				default:
+					throw new jsonError({
+						title: 'Schema exception',
+						detail: 'Your request isn\'t compatible with the current schema of data'
+					});
+			}
+		});
 	};
 
 	// resources descriptions
