@@ -3,6 +3,8 @@
 	parses an URL following the JSON API format specification
 */
 
+
+var url_parser = require('url');
 var typs = require('typs');
 
 var jsonError = require('./jsonError.js');
@@ -46,13 +48,16 @@ var parse = function (resource_obj, query, context) {
 	return resource_obj;
 };
 
-// 'url' is a *full* URL
-var parseUrl = function (path, query, context) {
+var parseUrl = function (url, context) {
+	// parse the URL string
+	var parsed = url_parser.parse(url, true);
+	var path = parsed.pathname;
+	var query = parsed.query;
 
 	// split the path and trim empty parts
 	path = path.split('/');
-	if (path[0] === '') path.shift();
-	if (path[path.length - 1] === '') path.pop();
+	if ('' === path[0]) path.shift();
+	if ('' === path[path.length - 1]) path.pop();
 
 	// primary resource
 	var primary = {};
