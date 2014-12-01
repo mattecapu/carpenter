@@ -2,6 +2,7 @@
 	JSON API Error object
 */
 
+
 var jsonError = function ({title, detail, status, code, href, links, path, id}) {
 	this.object = {
 		title: title || 'Error',

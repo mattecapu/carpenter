@@ -2,9 +2,10 @@
 	Check the existence of a resource, and throw if it doesn't exist
 */
 
-var typs = require('typs');
 
+var typs = require('typs');
 var jsonError = require('./jsonError.js');
+
 
 var assertResourceExists = function (resource, context) {
 	if (typs(context.resources[resource]).Null().check()) {
