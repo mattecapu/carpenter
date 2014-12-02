@@ -4,9 +4,10 @@ A powerful declarative tool to automagically generate a JSON-API-compliant REST 
 ### How it works
 *Carpenter*, given a description of the resources you want to expose in your REST API, will build a basic handler that manages the interaction with the SQL-capable database.
 
-Queries will be built based on the URL requested, which as defined in the JSON API specification, are descriptive enough to provide all the necessary information to handle the request. This information, along with the description of the resources and eventually of the database (if the two differ), is indeed enough to manage the more _formal_ part of an API, concerning more communication logic than application logic. Usin Carpenter will result in a strong and healthy decoupling between the two components.
+Queries will be built based on the URL requested, which as defined in the JSON API specification, are descriptive enough to provide all the necessary information to handle the request. This information, along with the description of the resources and eventually of the database (if the two differ), is indeed enough to manage the more _formal_ part of an API, concerning more communication logic than application logic.
+Using Carpenter will result in a strong and healthy decoupling between the two components.
 
-In the end, *you have control over what is really exposed*. The API returned, infact, is actually a function that consumes an URL, an HTTP method and a body object and returns an object. You can plug that to any routing system you use, and you still have complete control over the request and the response, content and format included.
+In the end, **you have control over what is really exposed**. The API returned, infact, is actually a function that consumes an URL, an HTTP method and a body object and returns an object. You can plug that to any routing system you use, and you still have complete control over the request and the response, content and format included.
 
 The aim of Carpenter thus is just to _simplify_ the static process of handling well known client-server interactions, whose logic is often redudant and not central to the application purposes.
 
@@ -52,8 +53,10 @@ Now the server is capable of handling any of these requests
 * `GET /photos/1`
 * `GET /photos/1/links/author`
 * `GET /photos/1?fields=title,album`
-* `GET /photos/1?include=album&fields[albums]=id,name
-* `POST /users   {email: 'foo@bar.com', name: 'Foo Bar', best_friend: 1}`
+* `GET /photos/1?include=album&fields[albums]=id,name`
+* `POST /photos    {photos: {title: 'nice photo', author: 23, album: 42}}`
+* `PUT /photos/1   {photos: {title: 'new awesome title'}}`
+* `DELETE /photos/1`
 * and almost every other possible request made in the limits of the [JSON API format](http://jsonapi.org/format/)
 
 ### License
