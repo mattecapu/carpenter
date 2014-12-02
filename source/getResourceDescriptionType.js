@@ -42,18 +42,19 @@ var typs = require('typs');
 						.every((column, i, array) => array.indexOf(column) === array.lastIndexOf(column));
 		}),
 
+		// resource keys
 		keys: typs().object().match({
 			// check if it's actually a resource's field
 			primary: inFieldsType,
-			foreign: typs().matchAny([
+			foreigns: typs().matchAny([
 				typs().Null(),
 				// check if every foreign key refers to a different field
-				typs().array().notEmpty().satisfies((foreigns) => {
+				typs().array().satisfies((foreigns) => {
 					var foreign_fields = foreigns.map((foreign) => foreign.field);
 					return foreigns.every((foreign) => {
 						return typs(foreign).is({
 							field: inFieldsType.satisfies((field) => {
-								foreign_fields.indexOf(field) === foreign_fields.lastIndexOf(field)
+								return foreign_fields.indexOf(field) === foreign_fields.lastIndexOf(field)
 							}),
 							resource: inResourcesType
 						});
@@ -62,6 +63,7 @@ var typs = require('typs');
 			])
 		}),
 
+		// supported methods
 		methods: typs().array().notEmpty().satisfies((methods) => methods.every((method) => -1 !== ['GET', 'PUT', 'POST', 'DELETE'].indexOf(method)))
 	};
 

@@ -48,10 +48,15 @@ function Carpenter() {
 						title: 'Schema exception',
 						detail: 'The record you are adding/updating makes a unique key fail'
 					});
+				case 'ER_NO_REFERENCED_ROW_':
+					throw new jsonError({
+						title: 'Schema exception',
+						detail: 'The record you are adding/updating references an inexistent row'
+					});
 				default:
 					throw new jsonError({
 						title: 'Schema exception',
-						detail: 'Your request isn\'t compatible with the current schema of data'
+						detail: 'Your request isn\'t compatible with the current schema of data (error \'' + error.cause.code + '\')'
 					});
 			}
 		});
@@ -62,6 +67,7 @@ function Carpenter() {
 	// validates and then adds a new resource to the API
 	this.declareResource = function (description) {
 		description.sql_table = description.sql_table || description.name;
+		description.keys.foreigns = description.keys.foreigns || [];
 		description.methods = description.methods.map((method) => method.toUpperCase());
 
 		if(typs(description).isnt(getResourceDescriptionType(description, this))) {
