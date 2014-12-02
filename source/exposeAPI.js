@@ -36,6 +36,9 @@ var exposeAPI = function (stringify, context) {
 			// (a request object)
 			var request = parseUrl(url, context);
 
+			// empty request? empty response!
+			if (typs(request).Null().check()) return Promise.resolve({response: {}, status: 404});
+
 			// let's check it's all ok with the request
 			validateResourceRequest(request.primary, context);
 			request.linked.forEach((linked) => validateResourceRequest(linked, context));
@@ -51,9 +54,9 @@ var exposeAPI = function (stringify, context) {
 
 			// pass the request object to a method-specific handler
 			return handlers[method](request, body, context);
-		}).then(({response, status}, x)  => {
+		}).then(({response, location, status}, x)  => {
 			if (stringify) response = JSON.stringify(response);
-			return {response, status};
+			return {response, location, status};
 		}).catch((error) => {
 			if (error instanceof Error) {
 				error = new jsonError({
@@ -68,7 +71,7 @@ var exposeAPI = function (stringify, context) {
 				});
 			}
 			return {
-				response: {error: error.object},
+				response: {errors: error.object},
 				status: error.object.status
 			};
 		});
