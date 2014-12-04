@@ -38,11 +38,11 @@ var handlePost = function (request, body, context) {
 			row[context.resources[request.primary.resource].structure[field].sql_column] = object[field];
 		});
 		query = query.setFields(row);
-console.log(query.toString());
+
 		return query;
+
 	}).map((query) => context.callQuery(query).reflect()).all().then((stats) => {
-		console.log('fulfilled',stats.map((s) => s.isFulfilled()));
-		console.log('rejected',stats.map((s) => s.isRejected()));
+
 		var handleGet = require('./handleGet.js');
 		var parseUrl = require('./parseUrl.js');
 
@@ -53,9 +53,6 @@ console.log(query.toString());
 			err.object.title = '(On request #' + (i + 1) + ') ' + err.object.title;
 			return err;
 		}).filter((error) => null !== error);
-
-		console.log('ids',ids);
-		console.log('errors',errors);
 
 		var promise_result = null;
 
