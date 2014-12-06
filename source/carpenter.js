@@ -39,19 +39,22 @@ function Carpenter() {
 		return query_fn({sql: text, typeCast: bit_casting}, values).catch((error) => {
 			switch(error.cause.code) {
 				case 'ER_NO_REFERENCED_ROW':
+				case 'ER_NO_REFERENCED_ROW_':
+				case 'ER_NO_REFERENCED_ROW_2':
 					throw new jsonError({
 						title: 'Schema exception',
-						detail: 'The record you are adding/updating makes a foreign key fail'
+						detail: 'The entity you are adding/updating makes one or more foreign key fail or references an inexistent entity'
 					});
 				case 'ER_DUP_ENTRY':
 					throw new jsonError({
 						title: 'Schema exception',
-						detail: 'The record you are adding/updating makes a unique key fail'
+						detail: 'The entity you are adding/updating makes a unique key fail'
 					});
-				case 'ER_NO_REFERENCED_ROW_':
+				case 'ECONNREFUSED':
 					throw new jsonError({
-						title: 'Schema exception',
-						detail: 'The record you are adding/updating references an inexistent row'
+						title: 'Database exception',
+						detail: 'Can\'t connect to the database',
+						status: 500
 					});
 				default:
 					throw new jsonError({
