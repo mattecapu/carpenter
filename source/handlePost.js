@@ -2,12 +2,12 @@
 	POST requests handler
 */
 
+
 var typs = require('typs');
 var squel = require('squel');
 var Promise = require('bluebird');
 
 var jsonError = require('./jsonError.js');
-var assertResourceExists = require('./assertResourceExists.js');
 
 
 var handlePost = function (request, body, context) {
