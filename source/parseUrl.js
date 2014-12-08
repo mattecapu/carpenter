@@ -96,7 +96,7 @@ var parseUrl = function (url, context) {
 			throw new jsonError({
 				title: 'Bad request',
 				detail: 'The specified linked resource is not actually linked to \'' + primary.resource + '\'',
-				status: 400
+				status: 404
 			});
 		}
 
@@ -111,6 +111,13 @@ var parseUrl = function (url, context) {
 
 		// let's proceed with the next tokens
 		path_index += 2;
+	}
+	if (typs(path[path_index + 2]).notNull().check()) {
+		throw new jsonError({
+			title: 'Bad request',
+			detail: 'The URL is malformed',
+			status: 404
+		});
 	}
 
 	// for this parameteres, the name of the primary resource can be omitted if it's the only one in the response
@@ -138,7 +145,7 @@ var parseUrl = function (url, context) {
 				throw new jsonError({
 					title: 'Bad request',
 					detail: '\'' + foreign + '\' is not a link of \'' + root.resource + '\'',
-					status: 400
+					status: 404
 				});
 			}
 
