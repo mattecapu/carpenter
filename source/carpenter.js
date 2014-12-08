@@ -4,9 +4,9 @@
 
 
 var typs = require('typs');
+var Promise = require('bluebird');
 
 var jsonError = require('./jsonError.js');
-
 var getResourceDescriptionType = require('./getResourceDescriptionType.js');
 var exposeAPI = require('./exposeAPI.js');
 
@@ -25,6 +25,20 @@ function Carpenter() {
 		return this;
 	};
 	this.callQuery = function (sql) {
+		// the empty query
+		if (typs(sql).Null().check()) return Promise.resolve([{}, {}]);
+
+		// non-squel query
+		if (typs(sql).string().check()) {
+			var dereferenced_sql = sql;
+			sql = {
+				toParam: () => {
+					return {text: dereferenced_sql, values: []};
+				}
+			};
+		}
+
+		// sensical handling for flag type
 		var bit_casting = function (field, next) {
 			// handle only BIT(1)
 			if (field.type === 'BIT' && field.length === 1) {
@@ -37,6 +51,9 @@ function Carpenter() {
 
 		var {text, values} = sql.toParam();
 		return query_fn({sql: text, typeCast: bit_casting}, values).catch((error) => {
+			// Generic error
+			if (!error.cause) throw error;
+			// MySQL error
 			switch(error.cause.code) {
 				case 'ER_NO_REFERENCED_ROW':
 				case 'ER_NO_REFERENCED_ROW_':
