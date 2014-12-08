@@ -1,29 +1,19 @@
 /*!
 	GET requests handler
 */
-var eyes=require('eyes');
+
 
 var squel = require('squel');
 var Promise = require('bluebird');
 
-var filterBy = require('./filterBy.js');
+var {filterBy, selectBy} = require('./queryBuilder.js');
 
-
-var buildQuery = function (resource_request, context) {
-	var query = filterBy(squel.select(), resource_request, context);
-
-	resource_request.fields.forEach((field) => {
-		query = query.field(context.resources[resource_request.resource].structure[field].sql_column, field);
-	});
-
-	return query;
-};
 
 var handleGet = function (request, body, context) {
 	squel.useFlavour('mysql');
 
-	var primary_query = buildQuery(request.primary, context);
-	var linked_queries = request.linked.map((linked) => buildQuery(linked, context));
+	var primary_query = selectBy(request.primary, context);
+	var linked_queries = request.linked.map((linked) => selectBy(linked, context));
 
 	var promises = [].concat.apply([primary_query], [linked_queries]).map((query) => context.callQuery(query));
 
