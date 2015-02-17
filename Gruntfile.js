@@ -1,10 +1,7 @@
 module.exports = function(grunt) {
 	grunt.initConfig({
 		pkg: grunt.file.readJSON('package.json'),
-		react: {
-			options: {
-				harmony: true
-			},
+		babel: {
 			all: {
 				files: [{
 					expand: true,
@@ -18,14 +15,14 @@ module.exports = function(grunt) {
 		watch: {
 			all: {
 				files: 'source/*.js',
-				tasks: ['newer:react']
+				tasks: ['newer:babel']
 			}
 		}
 	});
 
-	grunt.loadNpmTasks('grunt-react');
+	grunt.loadNpmTasks('grunt-babel');
 	grunt.loadNpmTasks('grunt-contrib-watch');
 	grunt.loadNpmTasks('grunt-newer');
 
-	grunt.registerTask('default', ['react']);
+	grunt.registerTask('default', ['babel']);
 };
