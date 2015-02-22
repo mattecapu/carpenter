@@ -19,11 +19,15 @@ var handlers = {
 };
 
 
-var exposeAPI = function (stringify, context) {
+var exposeAPI = function (context) {
+	// handler function
 	return function (url, method, body) {
+
 		method = method.toUpperCase();
 
 		return Promise.try(() => {
+
+			// check if it's a PUT/POST request, and thus requires a body
 			if (typs(body).notNull().object().notEmpty().doesntCheck() && (method === 'POST' || method === 'PUT')) {
 				throw new jsonError({
 					title: 'Bad request',
@@ -55,7 +59,6 @@ var exposeAPI = function (stringify, context) {
 			// pass the request object to a method-specific handler
 			return handlers[method](request, body, context);
 		}).then(({response, location, status}, x)  => {
-			if (stringify) response = JSON.stringify(response);
 			return {response, location, status};
 		}).catch((error) => {
 			if (error instanceof Error) {

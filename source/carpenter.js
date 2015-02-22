@@ -7,7 +7,8 @@ var typs = require('typs');
 var Promise = require('bluebird');
 
 var jsonError = require('./jsonError.js');
-var getResourceDescriptionType = require('./getResourceDescriptionType.js');
+var validateResourceDescription = require('./validateResourceDescription.js');
+var normalizeResourceDescription = require('./normalizeResourceDescription.js');
 var exposeAPI = require('./exposeAPI.js');
 
 
@@ -84,30 +85,27 @@ function Carpenter() {
 
 	// resources descriptions
 	this.resources = {};
+
 	// validates and then adds a new resource to the API
 	this.declareResource = function (description) {
-		description.sql_table = description.sql_table || description.name;
-		description.keys.foreigns = description.keys.foreigns || [];
-		description.methods = description.methods.map((method) => method.toUpperCase());
 
-		if(typs(description).isnt(getResourceDescriptionType(description, this))) {
+		description = normalizeResourceDescription(description);
+
+		if(!validateResourceDescription(description, this)) {
 			throw new Error('resource description is not valid');
 		}
 
-		this.resources[description.name] = description;
+		this.resources[description.type] = description;
 		return this;
 	};
-	this.exposeAPI = function (stringify) {
-		if (typs(stringify).bool().doesntCheck()) {
-			throw new Error('exposeAPI() expects a boolean as its first argument');
-		}
+	this.exposeAPI = function () {
 		if (typs(query_fn).func().doesntCheck()) {
 			throw new Error('carpenter needs a mysql query function to work, please provide one with setQuery()');
 		}
-		return exposeAPI(stringify, this);
+		return exposeAPI(this);
 	};
 };
 
-module.exports.types = require('./types.js');
+module.exports.domains = require('./domains.js');
 module.exports.jsonError = require('./jsonError.js');
 module.exports.get = () => new Carpenter();
