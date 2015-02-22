@@ -27,6 +27,11 @@
     "url": "https://github.com/mattecapu/carpenter/issues"
   },
   "homepage": "https://github.com/mattecapu/carpenter",
+  "dependencies": {
+    "bluebird": "^2.9.12",
+    "typs": "^0.3.7",
+    "squel": "^3.10.0"
+  },
   "devDependencies": {
     "eyes": "^0.1.8",
     "grunt": "^0.4.5",
@@ -34,10 +39,5 @@
     "grunt-newer": "^1.1.0",
 	"grunt-babel": "^4.0.0",
     "mysql": "^2.5.4"
-  },
-  "dependencies": {
-    "bluebird": "^2.9.11",
-    "typs": "^0.3.3",
-    "squel": "^3.10.0"
   }
 }
