@@ -12,35 +12,44 @@ var assertResourceExists = require('./assertResourceExists.js');
 
 
 var parse = function (resource_obj, query, context) {
+
+	let key = '';
+
 	// is the client asking for a particular subset of fields?
 	resource_obj.fields = resource_obj.fields || [];
-	var key = 'fields[' + resource_obj.resource + ']';
-	if (typs(query[key]).notNull().check()) {
+	key = 'fields[' + resource_obj.type + ']';
+	if (typs(query[key]).def().check()) {
 		resource_obj.fields = query[key].split(',');
 	} else if (0 === resource_obj.fields.length) {
 		// if not, add all fields
-		resource_obj.fields = Object.keys(context.resources[resource_obj.resource].structure);
+		resource_obj.fields = Object.keys(context.resources[resource_obj.type].attributes);
 	}
 
 	// is the client asking for a particular sorting?
 	resource_obj.sorters = resource_obj.sorters || [];
-	var key = 'sort[' + resource_obj.resource + ']';
-	if (typs(query[key]).notNull().check()) {
+	key = 'sort[' + resource_obj.type + ']';
+	if (typs(query[key]).def().check()) {
 		resource_obj.sorters = query[key].split(',').map((field) => {
-			return field[0] === '-' ? {field: field.replace('-', ''), asc: false} : {field, asc: true};
+			return {
+				field: field.slice(1),
+				// fields are prefixed with + for ascending order and - for descending
+				asc: field[0] === '+'
+			};
 		});
 	}
 
 	// is the client asking for a filtered response?
 	resource_obj.filters = resource_obj.filters || [];
-	Object.keys(context.resources[resource_obj.resource].structure).forEach((field) => {
-		var key = resource_obj.resource + '[' + field + ']';
-		if (typs(query[key]).notNull().check()) resource_obj.filters.push({field, values: query[key].split(',')});
+	Object.keys(context.resources[resource_obj.type].attributes).forEach((field) => {
+		key = resource_obj.type + '[' + field + ']';
+		if (typs(query[key]).def().check()) {
+			resource_obj.filters.push({field, values: query[key].split(',')});
+		}
 	});
 
 	if (resource_obj.ids && resource_obj.ids[0] !== 'any') {
 		resource_obj.filters.push({
-			field: context.resources[resource_obj.resource].keys.primary,
+			field: 'id',
 			values: resource_obj.ids
 		});
 	}
@@ -58,7 +67,7 @@ var parseUrl = function (url, context) {
 	path = path.split('/');
 	if ('' === path[0]) path.shift();
 	if ('' === path[path.length - 1]) path.pop();
-	
+
 	if (0 === path.length) return null;
 
 	// primary resource
@@ -66,22 +75,23 @@ var parseUrl = function (url, context) {
 	// linked resources
 	var linked = [];
 
-	var path_index = 0;
+	let path_index = 0;
 
 	// root resource (the first specified collection in the URL)
 	var root = {
-		resource: path[path_index + 0],
+		type: path[path_index],
 		ids: path.length > path_index + 1 ? path[path_index + 1].split(',') : ['any']
 	};
+
 	// check existence of the resource collection
-	assertResourceExists(root.resource, context);
+	assertResourceExists(root.type, context);
 
 	primary = root;
 
 	// is a path to a linked resource?
 	while('links' === path[path_index + 2]) {
 		// if yes, it must specify what linked resource it wants
-		if (typs(path[path_index + 3]).Null().check()) {
+		if (typs(path[path_index + 3]).undef().check()) {
 			throw new jsonError({
 				title: 'Bad request',
 				detail: 'Linked resource not specified',
@@ -89,30 +99,30 @@ var parseUrl = function (url, context) {
 			});
 		}
 
-		// check what resource type the foreign reference specified is
-		// (length === 1 guaranteed by resource description validation)
-		var foreign = context.resources[primary.resource].keys.foreigns.filter((f) => f.field === path[path_index + 3])[0];
-		if (typs(foreign).Null().check()) {
+		// recover the relationship data from the resource description
+		let relationship = Object.keys(context.resources[primary.type].relationships).filter((r) => r === path[path_index + 3])[0];
+		if (typs(relationship).undef().check()) {
 			throw new jsonError({
 				title: 'Bad request',
-				detail: 'The specified linked resource is not actually linked to \'' + primary.resource + '\'',
+				detail: 'The specified linked resource is not actually linked to \'' + primary.type + '\'',
 				status: 404
 			});
 		}
+		relationship = context.resources[primary.type].relationships[relationship];
 
 		// that becomes the primary resource of the request
 		primary = {
-			resource: foreign.resource,
+			type: relationship.type,
 			superset: {
 				request: parse(primary, {}, context),
-				foreign: foreign
+				relationship: relationship
 			}
 		};
 
 		// let's proceed with the next tokens
 		path_index += 2;
 	}
-	if (typs(path[path_index + 2]).notNull().check()) {
+	if (typs(path[path_index + 2]).def().check()) {
 		throw new jsonError({
 			title: 'Bad request',
 			detail: 'The URL is malformed',
@@ -120,38 +130,53 @@ var parseUrl = function (url, context) {
 		});
 	}
 
-	// for this parameteres, the name of the primary resource can be omitted if it's the only one in the response
-	if (typs(query['fields[' + primary.resource +']']).Null().check()) query['fields[' + primary.resource +']'] = query.fields;
-	if (typs(query['sort[' + primary.resource +']']).Null().check()) query['sort[' + primary.resource +']'] = query.sort;
+	// for this parameters, the name of the primary resource can be omitted
+	// if it's the only one in the response
+	// let's normalize that behaviour
+	if (typs(query['fields[' + primary.type +']']).undef().check()) {
+		query['fields[' + primary.type +']'] = query.fields;
+	}
+	if (typs(query['sort[' + primary.type +']']).undef().check()) {
+		query['sort[' + primary.type +']'] = query.sort;
+	}
 	delete query.sort;
 	delete query.fields;
-	Object.keys(context.resources[primary.resource].structure).forEach((field) => {
+
+	// normalize filters (<field>=<value>) for the primary resource
+	Object.keys(context.resources[primary.type].attributes).forEach((field) => {
 		if ('include' === field || 'fields' === field) return;
-		var key = primary.resource + '[' + field + ']';
-		if (typs(query[key]).Null().check()) query[key] = query[field];
+		let key = primary.type + '[' + field + ']';
+		if (typs(query[key]).undef().check()) {
+			query[key] = query[field];
+		}
 		delete query[field];
 	});
 
 	primary = parse(primary, query, context);
 
 	// is the client asking also for linked resources?
-	if (typs(query.include).notNull().check()) {
+	if (typs(query.include).def().check()) {
 		// get all the resources and their constraints (see primary)
-		linked = query.include.split(',').map((foreign) => {
-			// we fetch the foreign the request is referring to, if it doesn't exist, we fire an error
-			// (resource existence is already checked at declaration-time as part of foreign-keys validation)
-			foreign = context.resources[primary.resource].keys.foreigns.filter((f) => f.field === foreign)[0];
-			if (typs(foreign).Null().check()) {
+		linked = query.include.split(',').map((link) => {
+			// we fetch the relationship required, if it doesn't exist, we fire an error
+			// (resource existence is already checked at declaration-time as part of relationships validation)
+			let relationship = Object.keys(context.resources[primary.type].relationships).filter((r) => r === link)[0];
+			if (typs(relationship).undef().check()) {
 				throw new jsonError({
 					title: 'Bad request',
-					detail: '\'' + foreign + '\' is not a link of \'' + root.resource + '\'',
+					detail: '\'' + link + '\' is not a relationship of \'' + root.type + '\'',
 					status: 404
 				});
 			}
+			// store the actual relationship description
+			relationship = context.resources[primary.type].relationships[relationship];
 
 			return {
-				resource: foreign.resource,
-				superset: {request: primary, foreign}
+				type: relationship.type,
+				superset: {
+					request: primary,
+					relationship: relationship
+				}
 			};
 		}).map((resource) => {
 			return parse(resource, query, context);

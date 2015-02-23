@@ -5,6 +5,8 @@
 
 var typs = require('typs');
 
+var domains = require('./domains.js');
+
 var normalizeResourceDescription = function (description) {
 
 	let normalize_attributes = (attributes) => {
@@ -18,19 +20,38 @@ var normalizeResourceDescription = function (description) {
 	}
 
 	description.sql_table = description.sql_table || description.type;
-	description.relationships = description.relationships || {};
 	description.methods = description.methods.map((method) => method.toUpperCase());
 
 	description.attributes = normalize_attributes(description.attributes || {});
+	description.attributes.id = {domain: domains.id, sql_column: 'id'};
 
+	// all the columns of the MySQL table
+	description.columns = {};
+	Object.keys(description.attributes).forEach((attribute) => {
+		description.columns[attribute] = description.attributes[attribute].sql_column;
+	});
+
+	// relationships objects
+	description.relationships = description.relationships || {};
 	Object.keys(description.relationships).forEach((name) => {
 		let relationship = description.relationships[name];
+
+		// store the name in the object itself for simpler retrieving
+		relationship.name = name;
+		// additional attributes of the relationship
+		relationship.attributes = normalize_attributes(relationship.attributes || {});
+
 		// one to one relationships
 		if (relationship.to === 'one') {
 			// probably hosted in the same table of the resource
 			relationship.sql_table = relationship.sql_table || description.sql_table;
 			// with a foreign key
 			relationship.sql_column = relationship.sql_column || name + '_id';
+			// this columns are on the same table of the resource
+			description.columns[name] = relationship.sql_column;
+			Object.keys(relationship.attributes).forEach((attribute) => {
+				description.columns[attribute] = relationship.attributes[attribute].sql_column;
+			});
 		// one to many relationships
 		} else if (relationship.to === 'many') {
 			// probable name of the table where the relationship is stored
@@ -38,8 +59,7 @@ var normalizeResourceDescription = function (description) {
 			// with a foreign key to that
 			relationship.sql_column = relationship.sql_column || description.type.slice(0, -1) + '_id';
 		}
-		// additional attributes of the relationship
-		relationship.attributes = normalize_attributes(relationship.attributes || {});
+
 	});
 
 	return description;
