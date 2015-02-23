@@ -41,14 +41,16 @@ var exposeAPI = function (context) {
 			var request = parseUrl(url, context);
 
 			// empty request? empty response!
-			if (typs(request).Null().check()) return Promise.resolve({response: {}, status: 404});
+			if (typs(request).Null().check()) {
+				return Promise.resolve({response: {}, status: 404});
+			}
 
 			// let's check it's all ok with the request
 			validateResourceRequest(request.primary, context);
 			request.linked.forEach((linked) => validateResourceRequest(linked, context));
 
 			// is method supported by the primary resource? we hope so
-			if (-1 === context.resources[request.primary.resource].methods.indexOf(method)) {
+			if (typs(method).oneOf(context.resources[request.primary.type].methods).doesntCheck()) {
 				throw new jsonError({
 					title: 'Method not supported',
 					detail: method + ' requests are not supported for this end-point',

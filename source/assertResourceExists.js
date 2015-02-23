@@ -8,7 +8,7 @@ var jsonError = require('./jsonError.js');
 
 
 var assertResourceExists = function (resource, context) {
-	if (typs(context.resources[resource]).Null().check()) {
+	if (typs(context.resources[resource]).undef().check()) {
 		throw new jsonError({
 			title: 'Resource not found',
 			detail: '\'' + resource + '\' doesn\'t exist',

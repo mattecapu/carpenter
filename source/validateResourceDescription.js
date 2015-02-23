@@ -15,7 +15,7 @@ var validateResourceDescription = function (resource, context) {
 	var inResourcesType = identifierType.oneOf(Object.keys(context.resources));
 	// a set of attributes
 	var attributeType = typs().matchesAny([
-		typs().equals({}),
+		typs().hollow(),
 		typs().keyable().andEachProp().matches({
 			// type of the allowed values for this attribute
 			domain: typs().type(),
