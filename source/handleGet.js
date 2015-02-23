@@ -12,50 +12,35 @@ var {filterBy, selectBy} = require('./queryBuilder.js');
 var handleGet = function (request, body, context) {
 	squel.useFlavour('mysql');
 
-	var primary_query = selectBy(request.primary, context);
-	var linked_queries = request.linked.map((linked) => selectBy(linked, context));
+	let primary_query = selectBy(request.primary, context);
+	let linked_queries = request.linked.map((linked) => selectBy(linked, context));
 
-	var promises = [].concat.apply([primary_query], [linked_queries]).map((query) => context.callQuery(query));
-
-	var buildResponse = function (result) {
-		return result.length > 1 ? result : result[0];
-	}
+	var promises = [].concat(primary_query, linked_queries).map((query) => context.callQuery(query));
 
 	return Promise.all(promises).map((res) => res[0]).then((results) => {
-		var response = {};
 
-		if (0 === results[0].length) return {response, status: 404};
+		let response = {};
 
-		var linked_index = {};
-		var foreigns = context.resources[request.primary.resource].keys.foreigns.map((foreign) => foreign.field);
-		foreigns.forEach((foreign) => {
-			linked_index[foreign] = {};
-		});
-		foreigns.forEach((foreign) => {
-			results[0].forEach((result) => {
-				linked_index[foreign][result[foreign]] = linked_index[foreign][result[foreign]] || [];
-				linked_index[foreign][result[foreign]].push(result);
-			});
-		});
+		// empty response
+		if (0 === results[0].length) {
+			return {response, status: 404};
+		}
 
-		response[request.primary.resource] = buildResponse(results[0]);
+		// primary resource
+		response.data = results[0];
+		// add type member
+		response.data.forEach((result) => result.type = request.primary.type);
+		// if its a single object, unwrap it from the array
+		if (response.data.length === 1) {
+			response.data = response.data[0];
+		}
 
+		// are there any additional resources?
 		if (request.linked.length) {
 			response.linked = {};
-			results.slice(1).filter((r) => 0 !== r.length).forEach((result, i) => {
-				//response.linked[request.linked[i].resource] = buildResponse(result);
-
-				var primary_key = context.resources[request.linked[i].resource].keys.primary;
-				var foreign_key = request.linked[i].superset.foreign.field;
-
-				result.forEach((object) => {
-					object.type = request.linked[i].resource;
-					linked_index[foreign_key][object[primary_key]].forEach((primary) => {
-						primary.links = primary.links || {};
-						delete primary[foreign_key];
-						primary.links[foreign_key] = object;
-					});
-				});
+			
+			results.slice(1).forEach((result, i) => {
+				response.linked[request.linked[i].type] = result;
 			});
 		}
 
