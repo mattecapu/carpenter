@@ -12,6 +12,8 @@ var domains = {
 	text: typs().string(),
 	string: typs().string(),
 	timestamp: typs().matchesAny([typs().Null(), typs().positive()]),
+	nil: typs().Null(),
+	nullable: (type) => typs().matchesAny([typs().Null(), type]),
 
 	custom: typs()
 };
