@@ -7,3 +7,6 @@ test.js
 # dev files
 Gruntfile.js
 .gitignore
+
+# repl enhancer
+reload.js

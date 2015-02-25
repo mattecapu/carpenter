@@ -7,3 +7,6 @@ test.js
 # installation files
 node_modules
 npm-debug.log
+
+# repl enhancer
+reload.js
