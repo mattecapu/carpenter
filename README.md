@@ -1,40 +1,45 @@
 # Carpenter
-A powerful declarative tool to automagically generate a JSON-API-compliant REST API from his description.
+A powerful declarative tool to automagically generate a MySQL-based REST API from his description.
 
 ### How it works
-*Carpenter*, given a description of the resources you want to expose in your REST API, will build a basic handler that manages the interaction with the SQL-capable database.
+*Carpenter*, given a description of the resources you want to expose in your REST API, will build a basic handler that manages the interaction with the MySQL-capable database.
 
-Queries will be built based on the URL requested, which as defined in the JSON API specification, are descriptive enough to provide all the necessary information to handle the request. This information, along with the description of the resources and eventually of the database (if the two differ), is indeed enough to manage the more _formal_ part of an API, concerning more communication logic than application logic.
+Queries will be built based on the URL requested, which are descriptive enough to provide all the necessary information to handle the request. This information, along with the description of the resources and eventually of the database (if the two differ), is indeed enough to manage the more _formal_ part of an API, concerning more communication logic than application logic.
 Using Carpenter will result in a strong and healthy decoupling between the two components.
 
 In the end, **you have control over what is really exposed**. The API returned, infact, is actually a function that consumes an URL, an HTTP method and a body object and returns an object. You can plug that to any routing system you use, and you still have complete control over the request and the response, content and format included.
 
 The aim of Carpenter thus is just to _simplify_ the static process of handling well known client-server interactions, whose logic is often redudant and not central to the application purposes.
 
+### Format
+The format is inspired by the JSON API specification, but while initially it started as a fully compliant implementation, eventually **Carpenter now sticks to its own, simplified format**. JSON API needs to work in a wide range of cases, whereas Carpenter is more narrow-focused and aimed to fast development.
+Moreover, I needed to have a REST API _asap_, thus I decided to not support all the subtleties of the official specification and I just implemented what I needed: an essential, intuitive format, handy for the server and comfortable for the client.
+In the future I'll write a thorough documentation, of both library and API format. _Stay tuned, folks_.
+
 ### Usage
 This code creates a REST end-point for `users`.
 ```js
 var mach = require('mach');
 var carpenter = require('carpenter');
-var db = require('./my-database-handler.js');
+var db = require('./my-database-wrapper.js');
 
 carpenter.setConnection(db.connection());
 
 var rest_api = carpenter.declareResource({
-	name: 'photos',
-	sql_table: 'photographs',
-	structure: {
-		id: carpenter.types.id,
-		title: carpenter.types.string.len({max: 30}),
-		author: {type: carpenter.types.id, sql_column: 'author_id'},
-		album: {type: carpenter.types.id, sql_column: 'album_id'}
+	type: 'pictures',
+	attributes: {
+		title: carpenter.domains.string.len({max: 30}),
+		timestamp: carpenter.domains.nullable(carpenter.domains.timestamp)
 	},
-	keys: {
-		primary: 'id',
-		foreigns: [
-			{field: 'author', resource: 'users'},
-			{field: 'album', resource: 'albums'}
-		]
+	relationships: {
+		author: {
+			type: 'users',
+			to: 'one',
+		},
+		album: {
+			type: 'albums',
+			to: 'one',
+		}
 	},
 	methods: ['GET', 'POST', 'PUT', 'DELETE']
 }).exposeAPI();
@@ -49,14 +54,14 @@ app.map('/api/v1', function(req) {
 });
 ```
 Now the server is capable of handling any of these requests
-* `GET /photos`
-* `GET /photos/1`
-* `GET /photos/1/links/author`
-* `GET /photos/1?fields=title,album`
-* `GET /photos/1?include=album&fields[albums]=id,name`
-* `POST /photos    {photos: {title: 'nice photo', author: 23, album: 42}}`
-* `PUT /photos/1   {photos: {title: 'new awesome title'}}`
-* `DELETE /photos/1`
+* `GET  /pictures`
+* `GET  /pictures/1`
+* `GET  /pictures/1/author`
+* `GET  /pictures/1?fields=title,album`
+* `GET  /pictures/1?include=album&fields[albums]=id,name`
+* `POST /pictures    {pictures: {title: 'nice photo', author: 23, album: 42}}`
+* `PUT  /pictures/1   {pictures: {title: 'new awesome title'}}`
+* `DELETE /pictures/1`
 * and almost every other possible request made in the limits of the [JSON API format](http://jsonapi.org/format/)
 
 ### License
