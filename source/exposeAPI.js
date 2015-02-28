@@ -76,7 +76,7 @@ var exposeAPI = function (context) {
 				});
 			}
 			return {
-				response: {errors: error.object},
+				response: {error: error.object},
 				status: error.object.status
 			};
 		});
