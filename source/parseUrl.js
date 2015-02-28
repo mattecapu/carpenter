@@ -22,9 +22,9 @@ var parse = function (resource_obj, query, context) {
 		resource_obj.fields = query[key].split(',');
 	} else if (0 === resource_obj.fields.length) {
 		// if not, add all fields
-		resource_obj.fields = Object.keys(context.resources[resource_obj.type].attributes);
+		resource_obj.fields = Object.keys(context.resources[resource_obj.type].columns);//Object.keys(context.resources[resource_obj.type].attributes);
 	}
-
+	
 	// is the client asking for a particular sorting?
 	resource_obj.sorters = resource_obj.sorters || [];
 	key = 'sort[' + resource_obj.type + ']';
@@ -57,14 +57,55 @@ var parse = function (resource_obj, query, context) {
 	return resource_obj;
 };
 
+var unnest = function (path, root, context) {
+	
+	let path_index = 0;
+	let parent_resource = root;
+	
+	// is a path to a linked resource?
+	while(typs(path[path_index]).def().check()) {
+
+		// recover the relationship data from the resource description
+		let relationship = context.resources[parent_resource.type].relationships.filter((r) => r.name === path[path_index])[0];
+
+		if (typs(relationship).undef().check()) {
+			throw new jsonError({
+				title: 'Bad request',
+				detail: '\'' + path[path_index] + '\' is not a relationship of \'' + parent_resource.type + '\'',
+				status: 404
+			});
+		}
+
+		// that becomes the primary resource of the request
+		parent_resource = {
+			type: relationship.type,
+			superset: {
+				request: parse(parent_resource, {}, context),
+				relationship: relationship
+			}
+		};
+		
+		if (relationship.to === 'many') {
+			parent_resource.ids = path.length > path_index + 1 ? path[path_index + 1].split(',') : ['any'];
+			// skip ids
+			++path_index;
+		} else if (path[path_index + 1] === 'any') {
+			++path_index;
+		}
+
+		// let's proceed with the next tokens
+		++path_index;
+	}
+	return parent_resource;
+}
+
 var parseUrl = function (url, context) {
 	// parse the URL string
 	var parsed = url_parser.parse(url, true);
-	var path = parsed.pathname;
+	var path = parsed.pathname.split('/');
 	var query = parsed.query;
 
-	// split the path and trim empty parts
-	path = path.split('/');
+	// trim path
 	if ('' === path[0]) path.shift();
 	if ('' === path[path.length - 1]) path.pop();
 
@@ -75,60 +116,16 @@ var parseUrl = function (url, context) {
 	// linked resources
 	var linked = [];
 
-	let path_index = 0;
-
 	// root resource (the first specified collection in the URL)
 	var root = {
-		type: path[path_index],
-		ids: path.length > path_index + 1 ? path[path_index + 1].split(',') : ['any']
+		type: path[0],
+		ids: path.length > 1 ? path[1].split(',') : ['any']
 	};
 
 	// check existence of the resource collection
 	assertResourceExists(root.type, context);
 
-	primary = root;
-
-	// is a path to a linked resource?
-	while('links' === path[path_index + 2]) {
-		// if yes, it must specify what linked resource it wants
-		if (typs(path[path_index + 3]).undef().check()) {
-			throw new jsonError({
-				title: 'Bad request',
-				detail: 'Linked resource not specified',
-				status: 400
-			});
-		}
-
-		// recover the relationship data from the resource description
-		let relationship = Object.keys(context.resources[primary.type].relationships).filter((r) => r === path[path_index + 3])[0];
-		if (typs(relationship).undef().check()) {
-			throw new jsonError({
-				title: 'Bad request',
-				detail: 'The specified linked resource is not actually linked to \'' + primary.type + '\'',
-				status: 404
-			});
-		}
-		relationship = context.resources[primary.type].relationships[relationship];
-
-		// that becomes the primary resource of the request
-		primary = {
-			type: relationship.type,
-			superset: {
-				request: parse(primary, {}, context),
-				relationship: relationship
-			}
-		};
-
-		// let's proceed with the next tokens
-		path_index += 2;
-	}
-	if (typs(path[path_index + 2]).def().check()) {
-		throw new jsonError({
-			title: 'Bad request',
-			detail: 'The URL is malformed',
-			status: 404
-		});
-	}
+	primary = unnest(path.slice(2), root, context);
 
 	// for this parameters, the name of the primary resource can be omitted
 	// if it's the only one in the response
@@ -157,30 +154,13 @@ var parseUrl = function (url, context) {
 	// is the client asking also for linked resources?
 	if (typs(query.include).def().check()) {
 		// get all the resources and their constraints (see primary)
-		linked = query.include.split(',').map((link) => {
-			// we fetch the relationship required, if it doesn't exist, we fire an error
-			// (resource existence is already checked at declaration-time as part of relationships validation)
-			let relationship = Object.keys(context.resources[primary.type].relationships).filter((r) => r === link)[0];
-			if (typs(relationship).undef().check()) {
-				throw new jsonError({
-					title: 'Bad request',
-					detail: '\'' + link + '\' is not a relationship of \'' + root.type + '\'',
-					status: 404
-				});
-			}
-			// store the actual relationship description
-			relationship = context.resources[primary.type].relationships[relationship];
-
-			return {
-				type: relationship.type,
-				superset: {
-					request: primary,
-					relationship: relationship
-				}
-			};
-		}).map((resource) => {
-			return parse(resource, query, context);
-		});
+		linked = query.include.split(',')
+					// parse relationship path (i.e. comments.post.author)
+					.map((relationship) => relationship.split('.').map((x) => [x, 'any']).reduce((f, o) => f.concat(o), []))
+					// resolve request
+					.map((relationship) => unnest(relationship, primary, context))
+					// parse the rest of parameters
+					.map((resource) => parse(resource, query, context));
 	}
 
 	return {primary, linked};
