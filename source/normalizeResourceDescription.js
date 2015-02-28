@@ -61,6 +61,8 @@ var normalizeResourceDescription = function (description) {
 		}
 
 	});
+	// convert the map to an array for easier iteration
+	description.relationships = Object.keys(description.relationships).map((x) => description.relationships[x]);
 
 	return description;
 }
