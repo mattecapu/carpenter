@@ -63,6 +63,9 @@ var exposeAPI = function (context) {
 		}).then(({response, location, status}, x)  => {
 			return {response, location, status};
 		}).catch((error) => {
+			if (process.env.DEBUG) {
+				throw error;
+			}
 			if (error instanceof Error) {
 				error = new jsonError({
 					title: 'Unexpected error',
