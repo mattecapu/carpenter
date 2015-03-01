@@ -12,7 +12,7 @@ var jsonError = require('./jsonError.js');
 
 var allFieldsExist = function (fields, resource_type, context) {
 	return typs(fields).andEach().oneOf(
-		Object.keys(context.resources[resource_type].attributes)
+		Object.keys(context.resources[resource_type].columns)
 	).check();
 };
 
