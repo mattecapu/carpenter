@@ -63,7 +63,7 @@ var exposeAPI = function (context) {
 		}).then(({response, location, status}, x)  => {
 			return {response, location, status};
 		}).catch((error) => {
-			if (process.env.DEBUG) {
+			if (process.env.DEBUG && !(error instanceof jsonError)) {
 				throw error;
 			}
 			if (error instanceof Error) {
