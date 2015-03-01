@@ -16,8 +16,12 @@ The format is inspired by the JSON API specification, but while initially it sta
 Moreover, I needed to have a REST API _asap_, thus I decided to not support all the subtleties of the official specification and I just implemented what I needed: an essential, intuitive format, handy for the server and comfortable for the client.
 In the future I'll write a thorough documentation, of both library and API format. _Stay tuned, folks_.
 
+### Inference
+One of the main goals of Carpenter is to be quick to configure and integrate in an existing application. By default, Carpenter needs to know only the essential information about your API/database schema, and it will try to infer the most from it.
+This doesn't mean you will be stuck within the assumptions Carpenter will made: you are still able to override all the default stuff (as of now, mostly naming) with the specific configuration your application has.
+
 ### Usage
-This code creates a REST end-point for `users`.
+This code creates a REST end-point for `pictures` (actually it would need other resources to be declared, but for shortness they're omitted in this example).
 ```js
 var mach = require('mach');
 var carpenter = require('carpenter');
@@ -39,6 +43,10 @@ var rest_api = carpenter.declareResource({
 		album: {
 			type: 'albums',
 			to: 'one',
+		},
+		likes: {
+			type: 'likes',
+			to: 'many'
 		}
 	},
 	methods: ['GET', 'POST', 'PUT', 'DELETE']
