@@ -3,20 +3,24 @@
 	the resource_request object information
 */
 
-
+var typs = require('typs');
 var squel = require('squel');
 
 // adds WHERE clause to a query
 var filterBy = function (query, resource_request, context) {
 	
-	if(resource_request.superset) {
+	if (typs(resource_request.superset).def().check()) {
 		// set fields to select as the relationship field
 		resource_request.superset.fields = [resource_request.relationship.name];
 
 		query = query.where(
 			'id IN ?',
-			filterBy(selectBy(resource_request.superset, context), resource_request.superset, context)
+			selectBy(resource_request.superset, context)
 		);
+	}
+	
+	if (typs(resource_request.ids).def().check() && resource_request.ids[0] !== 'any') {
+		query = query.where('id IN ?', resource_request.ids);
 	}
 	
 	resource_request.filters.forEach(({field, values}, i) => {
@@ -31,7 +35,7 @@ var filterBy = function (query, resource_request, context) {
 };
 
 var selectBy = function (resource_request, context) {
-	var query = filterBy(squel.select().from(context.resources[resource_request.type].sql_table, resource_request.type), resource_request, context);
+	let query = filterBy(squel.select().from(context.resources[resource_request.type].sql_table, resource_request.type), resource_request, context);
 
 	// alias columns to exposed field names
 	resource_request.fields.forEach((field) => {

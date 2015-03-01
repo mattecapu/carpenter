@@ -22,7 +22,7 @@ var parse = function (resource_obj, query, context) {
 		resource_obj.fields = query[key].split(',');
 	} else if (0 === resource_obj.fields.length) {
 		// if not, add all fields
-		resource_obj.fields = Object.keys(context.resources[resource_obj.type].columns);//Object.keys(context.resources[resource_obj.type].attributes);
+		resource_obj.fields = Object.keys(context.resources[resource_obj.type].columns); //Object.keys(context.resources[resource_obj.type].attributes);
 	}
 	
 	// is the client asking for a particular sorting?
@@ -46,13 +46,6 @@ var parse = function (resource_obj, query, context) {
 			resource_obj.filters.push({field, values: query[key].split(',')});
 		}
 	});
-
-	if (resource_obj.ids && resource_obj.ids[0] !== 'any') {
-		resource_obj.filters.push({
-			field: 'id',
-			values: resource_obj.ids
-		});
-	}
 
 	return resource_obj;
 };
@@ -139,7 +132,6 @@ var parseUrl = function (url, context) {
 
 	// normalize filters (<field>=<value>) for the primary resource
 	Object.keys(context.resources[primary.type].attributes).forEach((field) => {
-		if ('include' === field || 'fields' === field) return;
 		let key = primary.type + '[' + field + ']';
 		if (typs(query[key]).undef().check()) {
 			query[key] = query[field];
