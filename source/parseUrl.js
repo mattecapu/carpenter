@@ -78,11 +78,9 @@ var unnest = function (path, root, context) {
 
 		// that becomes the primary resource of the request
 		parent_resource = {
+			relationship: relationship,
 			type: relationship.type,
-			superset: {
-				request: parse(parent_resource, {}, context),
-				relationship: relationship
-			}
+			superset: parse(parent_resource, {}, context)
 		};
 		
 		if (relationship.to === 'many') {

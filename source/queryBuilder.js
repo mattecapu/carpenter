@@ -8,19 +8,20 @@ var squel = require('squel');
 
 // adds WHERE clause to a query
 var filterBy = function (query, resource_request, context) {
-	resource_request.filters.forEach(({field, values}, i) => {
-		query = query.where(context.resources[resource_request.type].columns[field] + ' IN ?', values);
-	});
-
+	
 	if(resource_request.superset) {
 		// set fields to select as the relationship field
-		resource_request.superset.request.fields = [resource_request.superset.relationship.name];
+		resource_request.superset.fields = [resource_request.relationship.name];
 
 		query = query.where(
 			'id IN ?',
-			filterBy(selectBy(resource_request.superset.request, context), resource_request.superset.request, context)
+			filterBy(selectBy(resource_request.superset, context), resource_request.superset, context)
 		);
 	}
+	
+	resource_request.filters.forEach(({field, values}, i) => {
+		query = query.where(context.resources[resource_request.type].columns[field] + ' IN ?', values);
+	});
 
 	resource_request.sorters.forEach(({field, asc}, i) => {
 		query = query.order(context.resources[resource_request.type].columns[field], asc);
