@@ -56,10 +56,11 @@ var normalizeResourceDescription = function (description) {
 		} else if (relationship.to === 'many') {
 			// probable name of the table where the relationship is stored
 			relationship.sql_table = relationship.sql_table || description.type.slice(0, -1) + '_' + name;
-			// with a foreign key to that
-			relationship.sql_column = relationship.sql_column || description.type.slice(0, -1) + '_id';
+			// with a foreign key to this resource
+			relationship.first_key = relationship.sql_column || description.type.slice(0, -1) + '_id';
+			// and a foreign key to the other (relationship.type resource)
+			relationship.second_key = relationship.sql_column || relationship.type.slice(0, -1) + '_id';
 		}
-
 	});
 	// convert the map to an array for easier iteration
 	description.relationships = Object.keys(description.relationships).map((x) => description.relationships[x]);
