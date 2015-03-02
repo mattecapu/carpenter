@@ -1,5 +1,5 @@
 /*!
-	parseUrl
+	parseRequest
 	parses an URL following the JSON API format specification
 */
 
@@ -51,10 +51,10 @@ var parse = function (resource_obj, query, context) {
 };
 
 var unnest = function (path, root, context) {
-	
+
 	let path_index = 0;
 	let parent_resource = root;
-	
+
 	// is a path to a linked resource?
 	while(typs(path[path_index]).def().check()) {
 
@@ -75,7 +75,7 @@ var unnest = function (path, root, context) {
 			type: relationship.type,
 			superset: parse(parent_resource, {}, context)
 		};
-		
+
 		if (relationship.to === 'many') {
 			parent_resource.ids = path.length > path_index + 1 ? path[path_index + 1].split(',') : ['any'];
 			// skip ids
@@ -90,7 +90,7 @@ var unnest = function (path, root, context) {
 	return parent_resource;
 }
 
-var parseUrl = function (url, context) {
+var parseRequest = function (url, method, context) {
 	// parse the URL string
 	var parsed = url_parser.parse(url, true);
 	var path = parsed.pathname.split('/');
@@ -141,19 +141,20 @@ var parseUrl = function (url, context) {
 
 	primary = parse(primary, query, context);
 
-	// is the client asking also for linked resources?
-	if (typs(query.include).def().check()) {
+	// is the client asking also for related resources?
+	if (method === 'GET' && typs(query.include).def().check()) {
 		// get all the resources and their constraints (see primary)
-		linked = query.include.split(',')
-					// parse relationship path (i.e. comments.post.author)
-					.map((relationship) => relationship.split('.').map((x) => [x, 'any']).reduce((f, o) => f.concat(o), []))
-					// resolve request
-					.map((relationship) => unnest(relationship, primary, context))
-					// parse the rest of parameters
-					.map((resource) => parse(resource, query, context));
+		primary.relationships =
+			query.include.split(',')
+				// parse relationship path (i.e. comments.post.author)
+				.map((relationship) => relationship.split('.').map((x) => [x, 'any']).reduce((f, o) => f.concat(o), []))
+				// resolve request
+				.map((relationship) => unnest(relationship, primary, context))
+				// parse the rest of parameters
+				.map((resource) => parse(resource, query, context));
 	}
-
-	return {primary, linked};
+require('eyes').inspect(primary);
+	return primary;
 };
 
-module.exports = parseUrl;
+module.exports = parseRequest;

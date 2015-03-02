@@ -57,6 +57,15 @@ var validateResourceRequest = function (resource_request, context) {
 			status: 400
 		});
 	}
+	
+	// validate related resources
+	if (resource_request.relationships) {
+		resource_request.relationships.forEach((rel) => validateResourceRequest(rel));
+	}
+	// validate parent resource
+	if (resource_request.superset) {
+		validateResourceRequest(resource_request.superset);
+	}
 };
 
 module.exports = validateResourceRequest;

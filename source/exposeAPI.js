@@ -7,7 +7,7 @@
 var typs = require('typs');
 var Promise = require('bluebird');
 
-var parseUrl = require('./parseUrl.js');
+var parseRequest = require('./parseRequest.js');
 var validateResourceRequest = require('./validateResourceRequest.js');
 var jsonError = require('./jsonError.js');
 
@@ -38,7 +38,7 @@ var exposeAPI = function (context) {
 
 			// parse the request URL and builds an intermediate representation
 			// (a request object)
-			var request = parseUrl(url, context);
+			var request = parseRequest(url, method, context);
 
 			// empty request? empty response!
 			if (typs(request).Null().check()) {
@@ -46,11 +46,10 @@ var exposeAPI = function (context) {
 			}
 
 			// let's check it's all ok with the request
-			validateResourceRequest(request.primary, context);
-			request.linked.forEach((linked) => validateResourceRequest(linked, context));
+			validateResourceRequest(request, context);
 
-			// is method supported by the primary resource? we hope so
-			if (typs(method).oneOf(context.resources[request.primary.type].methods).doesntCheck()) {
+			// is method supported by the resource? we hope so
+			if (typs(method).oneOf(context.resources[request.type].methods).doesntCheck()) {
 				throw new jsonError({
 					title: 'Method not supported',
 					detail: method + ' requests are not supported for this end-point',
