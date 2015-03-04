@@ -13,10 +13,10 @@ var {filterBy, selectBy} = require('./queryBuilder.js');
 var handleGet = function (request, body, context) {
 	squel.useFlavour('mysql');
 
-	let primary_query = selectBy(request.primary, context);
-	let linked_queries = request.linked.map((linked) => selectBy(linked, context));
+	let main = selectBy(request, context);
+	let related = request.related.map((rel) => selectBy(rel, context));
 
-	let promises = [].concat(primary_query, linked_queries).map((query) => context.callQuery(query));
+	let query_promises = [].concat(main, related).map((query) => context.callQuery(query));
 
 	let normalize_response = (request, response) => {
 		// walk the request searching for "possibility of collection"
@@ -50,26 +50,26 @@ var handleGet = function (request, body, context) {
 		}
 	};
 
-	return Promise.all(promises).map((res) => res[0]).then((results) => {
+	return Promise.all(query_promises).map((res) => res[0]).then((results) => {
 
 		let response = {};
 		let status = results[0].length > 0 ? 200 : 404;
 
-		// primary resource
-		response[request.primary.type] = results[0];
+		// main resource
+		response[request.type] = results[0];
 		// add type member
-		response[request.primary.type].forEach((result) => result.type = request.primary.type);
+		response[request.type].forEach((result) => result.type = request.type);
 		// if a single object was requested, return it as an object and not as a collection
-		response[request.primary.type] = normalize_response(request.primary, response[request.primary.type]);
+		response[request.type] = normalize_response(request, response[request.type]);
 
 
 		// are there any additional resources?
-		if (request.linked.length) {
-			// skip the first resource (primary)
+		if (request.related.length) {
+			// skip the first resource (main)
 			results.slice(1).forEach((result, i) => {
-				response[request.linked[i].relationship.name] = result;
+				response[request.related[i].relationship.name] = result;
 				// if it's a single resource, return it as an object
-				response[request.linked[i].relationship.name] = normalize_response(request.linked[i], response[request.linked[i].relationship.name]);
+				response[request.related[i].relationship.name] = normalize_response(request.related[i], response[request.related[i].relationship.name]);
 			});
 		}
 

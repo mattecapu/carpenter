@@ -55,7 +55,7 @@ var unnest = function (path, root, context) {
 	let path_index = 0;
 	let parent_resource = root;
 
-	// is a path to a linked resource?
+	// is a path to a related resource?
 	while(typs(path[path_index]).def().check()) {
 
 		// recover the relationship data from the resource description
@@ -69,7 +69,7 @@ var unnest = function (path, root, context) {
 			});
 		}
 
-		// that becomes the primary resource of the request
+		// that becomes the main resource of the request
 		parent_resource = {
 			relationship: relationship,
 			type: relationship.type,
@@ -91,21 +91,20 @@ var unnest = function (path, root, context) {
 }
 
 var parseRequest = function (url, method, context) {
+	
+	// request representation
+	let request = {};
+	
 	// parse the URL string
-	var parsed = url_parser.parse(url, true);
-	var path = parsed.pathname.split('/');
-	var query = parsed.query;
+	let parsed = url_parser.parse(url, true);
+	let path = parsed.pathname.split('/');
+	let query = parsed.query;
 
 	// trim path
 	if ('' === path[0]) path.shift();
 	if ('' === path[path.length - 1]) path.pop();
 
 	if (0 === path.length) return null;
-
-	// primary resource
-	var primary = {};
-	// linked resources
-	var linked = [];
 
 	// root resource (the first specified collection in the URL)
 	var root = {
@@ -116,45 +115,46 @@ var parseRequest = function (url, method, context) {
 	// check existence of the resource collection
 	assertResourceExists(root.type, context);
 
-	primary = unnest(path.slice(2), root, context);
+	// main resource
+	request = unnest(path.slice(2), root, context);
 
-	// for this parameters, the name of the primary resource can be omitted
+	// for this parameters, the name of the main resource can be omitted
 	// if it's the only one in the response
 	// let's normalize that behaviour
-	if (typs(query['fields[' + primary.type +']']).undef().check()) {
-		query['fields[' + primary.type +']'] = query.fields;
+	if (typs(query['fields[' + request.type +']']).undef().check()) {
+		query['fields[' + request.type +']'] = query.fields;
 	}
-	if (typs(query['sort[' + primary.type +']']).undef().check()) {
-		query['sort[' + primary.type +']'] = query.sort;
+	if (typs(query['sort[' + request.type +']']).undef().check()) {
+		query['sort[' + request.type +']'] = query.sort;
 	}
 	delete query.sort;
 	delete query.fields;
 
-	// normalize filters (<field>=<value>) for the primary resource
-	Object.keys(context.resources[primary.type].attributes).forEach((field) => {
-		let key = primary.type + '[' + field + ']';
+	// normalize filters (<field>=<value>) for the main resource
+	Object.keys(context.resources[request.type].attributes).forEach((field) => {
+		let key = request.type + '[' + field + ']';
 		if (typs(query[key]).undef().check()) {
 			query[key] = query[field];
 		}
 		delete query[field];
 	});
 
-	primary = parse(primary, query, context);
+	request = parse(request, query, context);
 
 	// is the client asking also for related resources?
 	if (method === 'GET' && typs(query.include).def().check()) {
-		// get all the resources and their constraints (see primary)
-		primary.relationships =
+		// get all the resources and their constraints (see main)
+		request.related =
 			query.include.split(',')
 				// parse relationship path (i.e. comments.post.author)
-				.map((relationship) => relationship.split('.').map((x) => [x, 'any']).reduce((f, o) => f.concat(o), []))
+				.map((rel) => rel.split('.').map((x) => [x, 'any']).reduce((f, o) => f.concat(o), []))
 				// resolve request
-				.map((relationship) => unnest(relationship, primary, context))
+				.map((rel) => unnest(rel, request, context))
 				// parse the rest of parameters
 				.map((resource) => parse(resource, query, context));
 	}
-require('eyes').inspect(primary);
-	return primary;
+require('eyes').inspect(request);
+	return request;
 };
 
 module.exports = parseRequest;
