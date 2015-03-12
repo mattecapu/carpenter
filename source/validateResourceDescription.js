@@ -39,30 +39,17 @@ var validateResourceDescription = function (resource, context) {
 		relationships: typs().andEachMapEntry().matches({
 			// relationship identifier
 			key: identifierType,
-			value: typs().matchesAny([
-				// one-to-one relationship
-				typs().matches({
-					to: typs().equals('one'),
-					// related resource
-					type: inResourcesType,
-					// optional additional attributes
-					attributes: attributeType,
-					sql_table: identifierType,
-					sql_column: identifierType
-				}),
-				// one-to-many relationship
-				typs().matches({
-					to: typs().equals('many'),
-					// related resource
-					type: inResourcesType,
-					// optional additional attributes
-					attributes: attributeType,
-					sql_table: identifierType,
-					// keys on the relationship table
-					first_key: identifierType,
-					second_key: identifierType
-				}),
-			])
+			// properties
+			value: typs().matches({
+				to: typs().oneOf(['one', 'many']),
+				// related resource
+				type: inResourcesType,
+				// optional additional attributes
+				attributes: attributeType,
+				sql_table: identifierType,
+				from_key: identifierType,
+				to_key: identifierType
+			})
 		}),
 		methods: typs().array().notEmpty().andEach().oneOf(['GET', 'DELETE', 'POST', 'PUT'])
 	});

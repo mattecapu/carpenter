@@ -19,6 +19,7 @@ var normalizeResourceDescription = function (description) {
 		return attributes;
 	}
 
+	description.primary_key = description.primary_key || 'id';
 	description.sql_table = description.sql_table || description.type;
 	description.methods = description.methods.map((method) => method.toUpperCase());
 
@@ -45,21 +46,25 @@ var normalizeResourceDescription = function (description) {
 		if (relationship.to === 'one') {
 			// probably hosted in the same table of the resource
 			relationship.sql_table = relationship.sql_table || description.sql_table;
-			// with a foreign key
-			relationship.sql_column = relationship.sql_column || name + '_id';
-			// this columns are on the same table of the resource
-			description.columns[name] = relationship.sql_column;
-			Object.keys(relationship.attributes).forEach((attribute) => {
-				description.columns[attribute] = relationship.attributes[attribute].sql_column;
-			});
+			// with a foreign key to the main resource
+			relationship.from_key = relationship.from_key || name + '_id';
+			relationship.to_key = relationship.to_key || description.primary_key;
+			
+			// if the relationship is on the same table, let's add it to the columns vector
+			if (relationship.sql_table === description.sql_table) {
+				description.columns[name] = relationship.from_key;
+				Object.keys(relationship.attributes).forEach((attribute) => {
+					description.columns[attribute] = relationship.attributes[attribute].sql_column;
+				});
+			}
 		// one to many relationships
 		} else if (relationship.to === 'many') {
 			// probable name of the table where the relationship is stored
 			relationship.sql_table = relationship.sql_table || description.type.slice(0, -1) + '_' + name;
 			// with a foreign key to this resource
-			relationship.first_key = relationship.sql_column || description.type.slice(0, -1) + '_id';
+			relationship.from_key = relationship.from_key || description.type.slice(0, -1) + '_id';
 			// and a foreign key to the other (relationship.type resource)
-			relationship.second_key = relationship.sql_column || relationship.type.slice(0, -1) + '_id';
+			relationship.to_key = relationship.to_key || relationship.type.slice(0, -1) + '_id';
 		}
 	});
 	// convert the map to an array for easier iteration
