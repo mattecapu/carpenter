@@ -49,7 +49,7 @@ var exposeAPI = function (context) {
 			validateResourceRequest(request, context);
 
 			// is method supported by the resource? we hope so
-			if (typs(method).oneOf(context.resources[request.type].methods).doesntCheck()) {
+			if (typs(method).oneOf(context.resources[request.main.type].methods).doesntCheck()) {
 				throw new jsonError({
 					title: 'Method not supported',
 					detail: method + ' requests are not supported for this end-point',

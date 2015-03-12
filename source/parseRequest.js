@@ -22,7 +22,7 @@ var parse = function (resource_obj, query, context) {
 		resource_obj.fields = query[key].split(',');
 	} else if (0 === resource_obj.fields.length) {
 		// if not, add all fields
-		resource_obj.fields = Object.keys(context.resources[resource_obj.type].columns); //Object.keys(context.resources[resource_obj.type].attributes);
+		resource_obj.fields = Object.keys(context.resources[resource_obj.type].columns);
 	}
 	
 	// is the client asking for a particular sorting?
@@ -93,7 +93,7 @@ var unnest = function (path, root, context) {
 var parseRequest = function (url, method, context) {
 	
 	// request representation
-	let request = {};
+	let request = {main: {}, related: []};
 	
 	// parse the URL string
 	let parsed = url_parser.parse(url, true);
@@ -116,30 +116,30 @@ var parseRequest = function (url, method, context) {
 	assertResourceExists(root.type, context);
 
 	// main resource
-	request = unnest(path.slice(2), root, context);
+	request.main = unnest(path.slice(2), root, context);
 
 	// for this parameters, the name of the main resource can be omitted
 	// if it's the only one in the response
 	// let's normalize that behaviour
-	if (typs(query['fields[' + request.type +']']).undef().check()) {
-		query['fields[' + request.type +']'] = query.fields;
+	if (typs(query['fields[' + request.main.type +']']).undef().check()) {
+		query['fields[' + request.main.type +']'] = query.fields;
 	}
-	if (typs(query['sort[' + request.type +']']).undef().check()) {
-		query['sort[' + request.type +']'] = query.sort;
+	if (typs(query['sort[' + request.main.type +']']).undef().check()) {
+		query['sort[' + request.main.type +']'] = query.sort;
 	}
 	delete query.sort;
 	delete query.fields;
 
 	// normalize filters (<field>=<value>) for the main resource
-	Object.keys(context.resources[request.type].attributes).forEach((field) => {
-		let key = request.type + '[' + field + ']';
+	Object.keys(context.resources[request.main.type].attributes).forEach((field) => {
+		let key = request.main.type + '[' + field + ']';
 		if (typs(query[key]).undef().check()) {
 			query[key] = query[field];
 		}
 		delete query[field];
 	});
 
-	request = parse(request, query, context);
+	request.main = parse(request.main, query, context);
 
 	// is the client asking also for related resources?
 	if (method === 'GET' && typs(query.include).def().check()) {
@@ -149,7 +149,7 @@ var parseRequest = function (url, method, context) {
 				// parse relationship path (i.e. comments.post.author)
 				.map((rel) => rel.split('.').map((x) => [x, 'any']).reduce((f, o) => f.concat(o), []))
 				// resolve request
-				.map((rel) => unnest(rel, request, context))
+				.map((rel) => unnest(rel, request.main, context))
 				// parse the rest of parameters
 				.map((resource) => parse(resource, query, context));
 	}

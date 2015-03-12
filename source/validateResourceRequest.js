@@ -16,11 +16,22 @@ var allFieldsExist = function (fields, resource_type, context) {
 	).check();
 };
 
-var validateResourceRequest = function (resource_request, context) {
-	assertResourceExists(resource_request.type, context);
+var validateResourceRequest = function (request, context) {
+	
+	// validate related resources
+	if (typs(request.related).def().check()) {
+		request.related.forEach((rel) => validateResourceRequest(rel, context));
+	}
 
-	if (typs(resource_request.ids).notNull().check()) {
-		resource_request.ids.forEach((id) => {
+	// the main resource is wrapped in another object
+	if (typs(request.main).def().check()) {
+		request = request.main;
+	}
+	
+	assertResourceExists(request.type, context);
+
+	if (typs(request.ids).notNull().check()) {
+		request.ids.forEach((id) => {
 			if (id === 'any') return;
 			if (typs(id).isnt(domains.id)) {
 				throw new jsonError({
@@ -32,39 +43,35 @@ var validateResourceRequest = function (resource_request, context) {
 		});
 	}
 
-	if (!allFieldsExist(resource_request.fields, resource_request.type, context)) {
+	if (!allFieldsExist(request.fields, request.type, context)) {
 		throw new jsonError({
 			title: 'Unknown fields',
-			detail: 'One or more fields requested don\'t belong to \'' + resource_request.type + '\' resource',
+			detail: 'One or more fields requested don\'t belong to \'' + request.type + '\' resource',
 			status: 400
 		});
 	}
 
-	var filters_fields = resource_request.filters.map((f) => f.field);
-	if (!allFieldsExist(filters_fields, resource_request.type, context)) {
+	var filters_fields = request.filters.map((f) => f.field);
+	if (!allFieldsExist(filters_fields, request.type, context)) {
 		throw new jsonError({
 			title: 'Unknown fields',
-			detail: 'One or more fields in the requested filters don\'t belong to \'' + resource_request.type + '\' resource',
+			detail: 'One or more fields in the requested filters don\'t belong to \'' + request.type + '\' resource',
 			status: 400
 		});
 	}
 
-	var sorters_fields = resource_request.sorters.map((f) => f.field);
-	if (!allFieldsExist(sorters_fields, resource_request.type, context)) {
+	var sorters_fields = request.sorters.map((f) => f.field);
+	if (!allFieldsExist(sorters_fields, request.type, context)) {
 		throw new jsonError({
 			title: 'Unknown fields',
-			detail: 'One or more fields in the requested sorters don\'t belong to \'' + resource_request.type + '\' resource',
+			detail: 'One or more fields in the requested sorters don\'t belong to \'' + request.type + '\' resource',
 			status: 400
 		});
 	}
 	
-	// validate related resources
-	if (resource_request.related) {
-		resource_request.related.forEach((rel) => validateResourceRequest(rel));
-	}
 	// validate parent resource
-	if (resource_request.superset) {
-		validateResourceRequest(resource_request.superset);
+	if (typs(request.superset).def().check()) {
+		validateResourceRequest(request.superset, context);
 	}
 };
 
