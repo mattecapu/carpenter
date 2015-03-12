@@ -96,10 +96,8 @@ var selectBy = function (request, context) {
 
 	// add main resource fields
 	query = addFields(filterBy(query, request.main, context), request.main, context.resources[request.main.type].sql_table);
-
-	require('eyes').inspect(query.toString());
 	
-	return query.limit(3);
+	return query;
 };
 
 module.exports = {filterBy, selectBy};

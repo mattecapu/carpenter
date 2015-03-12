@@ -153,7 +153,7 @@ var parseRequest = function (url, method, context) {
 				// parse the rest of parameters
 				.map((resource) => parse(resource, query, context));
 	}
-require('eyes').inspect(request);
+
 	return request;
 };
 
