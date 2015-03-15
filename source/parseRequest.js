@@ -14,20 +14,21 @@ var assertResourceExists = require('./assertResourceExists.js');
 var parse = function (resource_obj, query, context) {
 
 	let key = '';
+	let res_key = resource_obj.relationship ? resource_obj.relationship.name : resource_obj.type;
 
 	// is the client asking for a particular subset of fields?
 	resource_obj.fields = resource_obj.fields || [];
-	key = 'fields[' + resource_obj.type + ']';
+	key = 'fields[' + res_key + ']';
 	if (typs(query[key]).def().check()) {
 		resource_obj.fields = query[key].split(',');
 	} else if (0 === resource_obj.fields.length) {
 		// if not, add all fields
-		resource_obj.fields = Object.keys(context.resources[resource_obj.type].columns);
+		resource_obj.fields = Object.keys(context.resources[resource_obj.type].attributes);
 	}
-	
+
 	// is the client asking for a particular sorting?
 	resource_obj.sorters = resource_obj.sorters || [];
-	key = 'sort[' + resource_obj.type + ']';
+	key = 'sort[' + res_key + ']';
 	if (typs(query[key]).def().check()) {
 		resource_obj.sorters = query[key].split(',').map((field) => {
 			return {
@@ -41,7 +42,7 @@ var parse = function (resource_obj, query, context) {
 	// is the client asking for a filtered response?
 	resource_obj.filters = resource_obj.filters || [];
 	Object.keys(context.resources[resource_obj.type].attributes).forEach((field) => {
-		key = resource_obj.type + '[' + field + ']';
+		key = res_key + '[' + field + ']';
 		if (typs(query[key]).def().check()) {
 			resource_obj.filters.push({field, values: query[key].split(',')});
 		}
@@ -91,10 +92,10 @@ var unnest = function (path, root, context) {
 }
 
 var parseRequest = function (url, method, context) {
-	
+
 	// request representation
 	let request = {main: {}, related: []};
-	
+
 	// parse the URL string
 	let parsed = url_parser.parse(url, true);
 	let path = parsed.pathname.split('/');
