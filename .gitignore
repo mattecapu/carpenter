@@ -3,6 +3,8 @@ build
 
 # dummy test files
 test.js
+popdb.js
+pop.sql
 
 # installation files
 node_modules

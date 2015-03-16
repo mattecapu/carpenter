@@ -3,10 +3,12 @@ source
 
 # dummy test files
 test.js
+popdb.js
+pop.sql
 
 # dev files
 Gruntfile.js
 .gitignore
 
 # repl enhancer
-reload.js
+repl.js

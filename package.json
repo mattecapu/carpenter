@@ -4,7 +4,7 @@
   "description": "Automagically generate a REST API from his declarative description",
   "main": "build/carpenter.transpiled.js",
   "scripts": {
-    "repl": "set DEBUG=1 && babel-node reload.js"
+    "repl": "set DEBUG=1 && babel-node repl.js"
   },
   "repository": {
     "type": "git",
