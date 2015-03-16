@@ -46,10 +46,15 @@ var normalizeResourceDescription = function (description) {
 		if (relationship.to === 'one') {
 			// probably hosted in the same table of the resource
 			relationship.sql_table = relationship.sql_table || description.sql_table;
-			// with a foreign key to the main resource
-			relationship.from_key = relationship.from_key || name + '_id';
-			relationship.to_key = relationship.to_key || description.primary_key;
-			
+			// normalization of the keys to handle one-to-one relationships as one-to-many with cardinality 1:
+			// so from_key is the primary key itself: is the key to the resource
+			// to which relationship is declared
+			relationship.from_key = relationship.from_key || description.primary_key;
+			// and to_key is the key to the other table where relationship is stored:
+			// could be the same table, could be another, but this key refers to
+			//the key to the related resource table
+			relationship.to_key = relationship.to_key || name + '_id';
+
 			// if the relationship is on the same table, let's add it to the columns vector
 			if (relationship.sql_table === description.sql_table) {
 				description.columns[name] = relationship.from_key;
@@ -64,7 +69,7 @@ var normalizeResourceDescription = function (description) {
 			// with a foreign key to this resource
 			relationship.from_key = relationship.from_key || description.type.slice(0, -1) + '_id';
 			// and a foreign key to the other (relationship.type resource)
-			relationship.to_key = relationship.to_key || relationship.type.slice(0, -1) + '_id';
+			relationship.to_key = relationship.to_key || name.slice(0, -1) + '_id';
 		}
 	});
 	// convert the map to an array for easier iteration
