@@ -13,29 +13,25 @@ var filterBy = function (query, request, context) {
 	let resource = context.resources[request.type];
 
 	if (typs(request.superset).def().check()) {
-
-		request.superset.fields = [context.resources[request.superset.type].primary_key];
-
-		let relationship_table = request.superset.type + '_' + request.relationship.name;
-		let to_table = request.relationship.type;
-
-		query =
+		query =	query.where(
+			// the primary key of the request resource
+			request.type + '.' + context.resources[request.type].primary_key + ' IN ?',
+			// is in the values returned by the relationship
 			squel.select()
-				.from(
-					request.relationship.sql_table,
-					relationship_table
-				)
-				.join(
-					context.resources[request.relationship.type].sql_table,
-					to_table,
-					to_table + '.' + context.resources[request.relationship.type].primary_key +
-					' = ' +
-					relationship_table + '.' + request.relationship.to_key
-				)
+				.from(request.relationship.sql_table)
+				.field(request.relationship.to_key)
+				// filter from the superset
 				.where(
-					relationship_table + '.' + request.relationship.from_key + ' IN ?',
-					selectBy({main: request.superset}, context)
-				);
+					request.relationship.from_key + ' IN ?',
+					filterBy(
+						squel.select()
+							.from(context.resources[request.superset.type].sql_table)
+							.field(context.resources[request.superset.type].primary_key),
+						request.superset,
+						context
+					)
+				)
+		);
 	}
 
 	if (typs(request.ids).def().check() && request.ids[0] !== 'any') {
@@ -56,61 +52,80 @@ var filterBy = function (query, request, context) {
 var selectBy = function (request, context) {
 	// alias columns to exposed field names
 	let addFields = (query, req, prefix) => {
-		return req.fields.reduce((q, field) => q.field(prefix + '.' + context.resources[req.type].columns[field], prefix + '_' + field), query);
+		return req.fields.reduce((q, field) => q.field(prefix + '.' + context.resources[req.type].columns[field], prefix + '$' + field), query);
 	};
 
 	// base query
-	let query = squel.select().from(context.resources[request.main.type].sql_table, request.main.type);
+	let query = squel.select();
+	let base_alias = request.main.type;
+
+	query = query.from(context.resources[request.main.type].sql_table, base_alias);
 
 	// related resources
 	if (typs(request.related).def().check()) {
 
 		// craft the prefix for deep relationships
 		let ancestors = (rel) => {
-			if (typs(rel.superset).def().check() && typs(rel.superset.relationship).def().check()) {
+			if (typs(rel).equals(request.main).check()) {
+				return base_alias;
+			} else if (typs(rel.superset).def().check()) {
+				// chain the name of the relationships
 				return ancestors(rel.superset).concat(rel.superset.relationship.name);
-			} else {
-				return [rel.relationship.sql_table];
 			}
+			return [request.main.type];//[rel.relationship.type];
 		};
 
-		// let's dig down the tree of relationships
+		// dig down the tree of relationships
 		// and extract the correct joins to do
-		// moreover, we rearrange them to respect order of conditions
-		let joins = [];
-		let stack = [].concat(request.related);
+		// moreover, rearrange them to respect order of conditions
+		let buildJoin = (rel, query) => {
+			// prefix the names with their relationship path
+			let makeAlias = (r) => ancestors(r).concat(r.relationship.name).join('$');
 
-		while(stack.length) {
-			let rel = stack.pop();
-			let ancs = ancestors(rel);
-
-			joins.unshift([
-				// table
-				rel.relationship.sql_table,
-				// alias
-				ancs.concat(rel.relationship.name).join('_'),
-				// join condition
-				ancs.join('_') + '.' + rel.relationship.from_key +
-				'=' +
-				ancs.concat(rel.relationship.name).join('_') + '.' + rel.relationship.to_key
-			]);
-
-			if (typs(rel.superset).def().check() && typs(rel.superset.relationship).def().check()) {
-				stack.push(rel.superset);
+			// if the relationship is deep, we have to build it to the top
+			if (typs(rel.superset).def().check()) {
+				query = buildJoin(rel.superset, query);
 			}
-		}
 
-		// add joins
-		query = joins.reduce((q, j) => q.join.apply(q, j), query);
+			let rel_alias = makeAlias(rel);
+			let rel_info_alias = rel_alias + '$info';
+			let rel_superset = rel.superset || request.main;
+			let rel_superset_alias = typs(rel.superset).def().check() ? makeAlias(rel.superset) : base_alias;
 
-		// add fields
-		query = request.related.reduce((q, rel) => {
-			return addFields(query, rel, ancestors(rel).concat(rel.relationship.name).join('_'));
-		}, query);
+			// table where is stored the related resource
+			query = query.join(
+				context.resources[rel.relationship.type].sql_table,
+				rel_alias
+			);
+			// table where is stored the relationship
+			query = query.join(
+				rel.relationship.sql_table,
+				rel_info_alias,
+				rel_alias + '.' + context.resources[rel.relationship.type].primary_key +
+				' = ' +
+				rel_info_alias + '.' + rel.relationship.to_key +
+				' AND ' +
+				rel_info_alias + '.' + rel.relationship.from_key +
+				' = ' +
+				rel_superset_alias + '.' + context.resources[rel_superset.type].primary_key
+			);
+
+			return query;
+		};
+
+		request.related.forEach((rel) => {
+			// set the fields to fetch
+			query = addFields(
+				// build then add the joins
+				buildJoin(rel, query),
+				rel,
+				ancestors(rel).concat(rel.relationship.name).join('$')
+			);
+		});
 	}
 
 	// add main resource fields
-	query = addFields(filterBy(query, request.main, context), request.main, context.resources[request.main.type].sql_table);
+	query = addFields(filterBy(query, request.main, context), request.main, base_alias);
 
 	return query;
 };

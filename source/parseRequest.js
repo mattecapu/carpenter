@@ -151,6 +151,17 @@ var parseRequest = function (url, method, context) {
 				.map((rel) => rel.split('.').map((x) => [x, 'any']).reduce((f, o) => f.concat(o), []))
 				// resolve request
 				.map((rel) => unnest(rel, request.main, context))
+				// remove last filter for related resource because they're already filtered at top level
+				// (it messes up with query building)
+				.map((resource) => {
+					let parent = resource;
+					// dig down until we found the root request
+					while (typs(parent.superset).notEquals(request.main).check()) {
+						parent = parent.superset;
+					}
+					delete parent.superset;
+					return resource;
+				})
 				// parse the rest of parameters
 				.map((resource) => parse(resource, query, context));
 	}
