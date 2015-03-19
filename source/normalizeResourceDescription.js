@@ -52,7 +52,7 @@ var normalizeResourceDescription = function (description) {
 			relationship.from_key = relationship.from_key || description.primary_key;
 			// and to_key is the key to the other table where relationship is stored:
 			// could be the same table, could be another, but this key refers to
-			//the key to the related resource table
+			// the key to the related resource table
 			relationship.to_key = relationship.to_key || name + '_id';
 
 			// if the relationship is on the same table, let's add it to the columns vector
