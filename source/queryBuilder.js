@@ -75,6 +75,9 @@ var selectBy = function (request, context) {
 			return [request.main.type];//[rel.relationship.type];
 		};
 
+		// list of the joined tables
+		let joined = [];
+
 		// dig down the tree of relationships
 		// and extract the correct joins to do
 		// moreover, rearrange them to respect order of conditions
@@ -92,23 +95,29 @@ var selectBy = function (request, context) {
 			let rel_superset = rel.superset || request.main;
 			let rel_superset_alias = typs(rel.superset).def().check() ? makeAlias(rel.superset) : base_alias;
 
-			// table where is stored the related resource
-			query = query.join(
-				context.resources[rel.relationship.type].sql_table,
-				rel_alias
-			);
-			// table where is stored the relationship
-			query = query.join(
-				rel.relationship.sql_table,
-				rel_info_alias,
-				rel_alias + '.' + context.resources[rel.relationship.type].primary_key +
-				' = ' +
-				rel_info_alias + '.' + rel.relationship.to_key +
-				' AND ' +
-				rel_info_alias + '.' + rel.relationship.from_key +
-				' = ' +
-				rel_superset_alias + '.' + context.resources[rel_superset.type].primary_key
-			);
+			if (typs(rel_alias).oneOf(joined).doesntCheck()) {
+				// table where is stored the related resource
+				query = query.join(
+					context.resources[rel.relationship.type].sql_table,
+					rel_alias
+				);
+				joined.push(rel_alias);
+			}
+			if (typs(rel_info_alias).oneOf(joined).doesntCheck()) {
+				// table where is stored the relationship
+				query = query.join(
+					rel.relationship.sql_table,
+					rel_info_alias,
+					rel_alias + '.' + context.resources[rel.relationship.type].primary_key +
+					' = ' +
+					rel_info_alias + '.' + rel.relationship.to_key +
+					' AND ' +
+					rel_info_alias + '.' + rel.relationship.from_key +
+					' = ' +
+					rel_superset_alias + '.' + context.resources[rel_superset.type].primary_key
+				);
+				joined.push(rel_info_alias);
+			}
 
 			return query;
 		};
