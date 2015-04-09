@@ -64,15 +64,19 @@ var selectBy = function (request, context) {
 	// related resources
 	if (typs(request.related).def().check()) {
 
-		// craft the prefix for deep relationships
-		let ancestors = (rel) => {
-			if (typs(rel).equals(request.main).check()) {
-				return base_alias;
-			} else if (typs(rel.superset).def().check()) {
-				// chain the name of the relationships
-				return ancestors(rel.superset).concat(rel.superset.relationship.name);
-			}
-			return [request.main.type];//[rel.relationship.type];
+		// prefix the names with their relationship path
+		let makeAlias = (r) => {
+			// get all the nesting tree
+			let ancestors = (rel) => {
+				if (typs(rel).equals(request.main).check()) {
+					return base_alias;
+				} else if (typs(rel.superset).def().check()) {
+					// chain the name of the relationships
+					return ancestors(rel.superset).concat(rel.superset.relationship.name);
+				}
+				return [request.main.type];//[rel.relationship.type];
+			};
+			return ancestors(r).concat(r.relationship.name).join('$');
 		};
 
 		// list of the joined tables
@@ -82,9 +86,6 @@ var selectBy = function (request, context) {
 		// and extract the correct joins to do
 		// moreover, rearrange them to respect order of conditions
 		let buildJoin = (rel, query) => {
-			// prefix the names with their relationship path
-			let makeAlias = (r) => ancestors(r).concat(r.relationship.name).join('$');
-
 			// if the relationship is deep, we have to build it to the top
 			if (typs(rel.superset).def().check()) {
 				query = buildJoin(rel.superset, query);
@@ -128,7 +129,7 @@ var selectBy = function (request, context) {
 				// build then add the joins
 				buildJoin(rel, query),
 				rel,
-				ancestors(rel).concat(rel.relationship.name).join('$')
+				makeAlias(rel)
 			);
 		});
 	}
