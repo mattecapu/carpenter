@@ -88,17 +88,13 @@ function Carpenter() {
 
 	// validates and then adds a new resource to the API
 	this.declareResource = function (description) {
-
-		description = normalizeResourceDescription(description);
-
-		if(!validateResourceDescription(description, this)) {
-			throw new Error('resource description is not valid');
-		}
-
-		this.resources[description.type] = description;
+		this.resources[description.type] = normalizeResourceDescription(description);
 		return this;
 	};
 	this.exposeAPI = function () {
+		if (typs(this.resources).notEmpty().andEachProp().satisfies((x) => validateResourceDescription(x, this)).doesntCheck()) {
+			throw new Error('resource description is not valid');
+		}
 		if (typs(query_fn).func().doesntCheck()) {
 			throw new Error('carpenter needs a mysql query function to work, please provide one with setQuery()');
 		}
