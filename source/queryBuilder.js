@@ -3,14 +3,13 @@
 	the resource_request object information
 */
 
-
-var typs = require('typs');
-var squel = require('squel');
+import typs from 'typs';
+import squel from 'squel';
 
 // adds WHERE clause to a query
-var filterBy = function (query, request, context) {
+export function filterBy(query, request, context) {
 
-	let resource = context.resources[request.type];
+	const resource = context.resources[request.type];
 
 	if (typs(request.superset).def().check()) {
 		query =	query.where(
@@ -47,17 +46,17 @@ var filterBy = function (query, request, context) {
 	});
 
 	return query;
-};
+}
 
-var selectBy = function (request, context) {
+export function selectBy (request, context) {
 	// alias columns to exposed field names
-	let addFields = (query, req, prefix) => {
+	const addFields = (query, req, prefix) => {
 		return req.fields.reduce((q, field) => q.field(prefix + '.' + context.resources[req.type].columns[field], prefix + '$' + field), query);
 	};
 
+	const base_alias = request.main.type;
 	// base query
 	let query = squel.select();
-	let base_alias = request.main.type;
 
 	query = query.from(context.resources[request.main.type].sql_table, base_alias);
 
@@ -65,36 +64,36 @@ var selectBy = function (request, context) {
 	if (typs(request.related).def().check()) {
 
 		// prefix the names with their relationship path
-		let makeAlias = (r) => {
+		const makeAlias = (r) => {
 			// get all the nesting tree
-			let ancestors = (rel) => {
+			const ancestors = (rel) => {
 				if (typs(rel).equals(request.main).check()) {
 					return base_alias;
 				} else if (typs(rel.superset).def().check()) {
 					// chain the name of the relationships
 					return ancestors(rel.superset).concat(rel.superset.relationship.name);
 				}
-				return [request.main.type];//[rel.relationship.type];
+				return [request.main.type];
 			};
 			return ancestors(r).concat(r.relationship.name).join('$');
 		};
 
-		// list of the joined tables
+		// keep track of the joined tables
 		let joined = [];
 
 		// dig down the tree of relationships
 		// and extract the correct joins to do
 		// moreover, rearrange them to respect order of conditions
-		let buildJoin = (rel, query) => {
+		const buildJoin = (rel, query) => {
 			// if the relationship is deep, we have to build it to the top
 			if (typs(rel.superset).def().check()) {
 				query = buildJoin(rel.superset, query);
 			}
 
-			let rel_alias = makeAlias(rel);
-			let rel_info_alias = rel_alias + '$info';
-			let rel_superset = rel.superset || request.main;
-			let rel_superset_alias = typs(rel.superset).def().check() ? makeAlias(rel.superset) : base_alias;
+			const rel_alias = makeAlias(rel);
+			const rel_info_alias = rel_alias + '$info';
+			const rel_superset = rel.superset || request.main;
+			const rel_superset_alias = typs(rel.superset).def().check() ? makeAlias(rel.superset) : base_alias;
 
 			if (typs(rel_alias).oneOf(joined).doesntCheck()) {
 				// table where is stored the related resource
@@ -123,15 +122,38 @@ var selectBy = function (request, context) {
 			return query;
 		};
 
-		request.related.forEach((rel) => {
-			// set the fields to fetch
-			query = addFields(
-				// build then add the joins
-				buildJoin(rel, query),
-				rel,
-				makeAlias(rel)
-			);
-		});
+		const add_joins_fields = (rels) => {
+			rels.forEach((rel) => {
+				// set the fields to fetch
+				query = addFields(
+					// build then add the joins
+					buildJoin(rel, query),
+					rel,
+					makeAlias(rel)
+				);
+			});
+		};
+
+		// add IDs for "implicit", related resources
+		// inbetween directly related resources and deep related resources
+		// (that's because when building a GET response, we need
+		// intermediate resources ids to correctly parse joined relationships)
+		let implicits = [];
+		// if rel is a directly related resource, skip it,
+		// otherwise we add it to the implicits collection
+		const add_rel = (rel) => {
+			if (rel === undefined) return;
+			if (!rel.directly_requested) {
+				rel.fields = [context.resources[rel.type].primary_key];
+				implicits.push(rel);
+			}
+			add_rel(rel.superset);
+		};
+		request.related.forEach(add_rel);
+
+		// add all the joins and the fields to the query
+		add_joins_fields(request.related);
+		add_joins_fields(implicits);
 	}
 
 	// add main resource fields
@@ -139,5 +161,3 @@ var selectBy = function (request, context) {
 
 	return query;
 };
-
-module.exports = {filterBy, selectBy};
