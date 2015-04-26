@@ -8,11 +8,12 @@ import typs from 'typs';
 
 import jsonError from './jsonError.js';
 import assertResourceExists from './assertResourceExists.js';
+import keypath from './keypath.js';
 
 const parse = (resource_obj, query, context) => {
 
 	let key = '';
-	const res_key = resource_obj.relationship ? resource_obj.relationship.name : resource_obj.type;
+	const res_key = resource_obj.relationship ? keypath(resource_obj) : resource_obj.type;
 
 	// is the client asking for a particular subset of fields?
 	resource_obj.fields = resource_obj.fields || [];

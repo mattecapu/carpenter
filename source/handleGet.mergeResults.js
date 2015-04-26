@@ -3,14 +3,8 @@
 	eliminating JOIN's artifact
 */
 
-const keypath = (rel) => {
-	let keys = [];
-	while (rel) {
-		keys.unshift(rel.relationship.name)
-		rel = rel.superset;
-	}
-	return keys.join('.');
-}
+import keypath from './keypath.js';
+
 // return the innermost relationship of the tree (aka the root)
 const root_rel = (rel) => {
 	while (rel.superset) {
