@@ -2,19 +2,14 @@
 	Check the existence of a resource, and throw if it doesn't exist
 */
 
+import jsonError from './jsonError.js';
 
-var typs = require('typs');
-var jsonError = require('./jsonError.js');
-
-
-var assertResourceExists = function (resource, context) {
-	if (typs(context.resources[resource]).undef().check()) {
+export default function (resource, context) {
+	if (context.resources[resource] === undefined) {
 		throw new jsonError({
 			title: 'Resource not found',
 			detail: '\'' + resource + '\' doesn\'t exist',
 			status: 404
 		});
 	}
-};
-
-module.exports = assertResourceExists;
+}

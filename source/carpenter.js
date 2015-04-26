@@ -2,36 +2,36 @@
 	Main file!
 */
 
+import typs from 'typs';
+import Promise from 'bluebird';
 
-var typs = require('typs');
-var Promise = require('bluebird');
+import jsonError from './jsonError.js';
+import validateResourceDescription from './validateResourceDescription.js';
+import normalizeResourceDescription from './normalizeResourceDescription.js';
+import exposeAPI from './exposeAPI.js';
 
-var jsonError = require('./jsonError.js');
-var validateResourceDescription = require('./validateResourceDescription.js');
-var normalizeResourceDescription = require('./normalizeResourceDescription.js');
-var exposeAPI = require('./exposeAPI.js');
+// query function
+let query_fn = null;
 
-
-function Carpenter() {
-	// query function
-	var query_fn = null;
-
-	this.setQuery = function (fn) {
+class Carpenter {
+	constructor() {
+		// resources descriptions
+		this.resources = {};
+	}
+	setQuery(fn) {
 		if (typs(fn).func().doesntCheck()) {
 			throw new Error('setQuery() expects a mysql Connection object as its first parameter');
 		}
-
 		query_fn = fn;
-
 		return this;
-	};
-	this.callQuery = function (sql) {
+	}
+	callQuery(sql) {
 		// the empty query
 		if (typs(sql).Null().check()) return Promise.resolve([{}, {}]);
 
 		// non-squel query
 		if (typs(sql).string().check()) {
-			var dereferenced_sql = sql;
+			const dereferenced_sql = sql;
 			sql = {
 				toParam: () => {
 					return {text: dereferenced_sql, values: []};
@@ -40,17 +40,17 @@ function Carpenter() {
 		}
 
 		// sensical handling for flag type
-		var bit_casting = function (field, next) {
+		const bit_casting = (field, next) => {
 			// handle only BIT(1)
 			if (field.type === 'BIT' && field.length === 1) {
-				var bit = field.string();
+				const bit = field.string();
 				return (null === bit) ? null : (1 === bit.charCodeAt(0) ? true : false);
 			}
 			// handle everything else as default
 			return next();
 		};
 
-		var {text, values} = sql.toParam();
+		let {text, values} = sql.toParam();
 		return query_fn({sql: text, typeCast: bit_casting}, values).catch((error) => {
 			// Generic error
 			if (!error.cause) throw error;
@@ -81,17 +81,13 @@ function Carpenter() {
 					});
 			}
 		});
-	};
-
-	// resources descriptions
-	this.resources = {};
-
+	}
 	// validates and then adds a new resource to the API
-	this.declareResource = function (description) {
+	declareResource(description) {
 		this.resources[description.type] = normalizeResourceDescription(description);
 		return this;
-	};
-	this.exposeAPI = function () {
+	}
+	exposeAPI() {
 		if (typs(this.resources).notEmpty().andEachProp().satisfies((x) => validateResourceDescription(x, this)).doesntCheck()) {
 			throw new Error('resource description is not valid');
 		}
@@ -99,9 +95,9 @@ function Carpenter() {
 			throw new Error('carpenter needs a mysql query function to work, please provide one with setQuery()');
 		}
 		return exposeAPI(this);
-	};
-};
+	}
+}
 
-module.exports.domains = require('./domains.js');
-module.exports.jsonError = require('./jsonError.js');
-module.exports.get = () => new Carpenter();
+export {default as domains} from './domains.js';
+export {default as jsonError} from './jsonError.js';
+export const get = () => new Carpenter();

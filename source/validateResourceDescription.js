@@ -2,19 +2,18 @@
 	Resource type validation
 */
 
-var typs = require('typs');
+import typs from 'typs';
 
+export default function (resource, context) {
 
-var validateResourceDescription = function (resource, context) {
-
-	var identifierType = typs().string().notEmpty();
+	const identifierType = typs().string().notEmpty();
 
 	// is one of the attributes?
-	var inAttributesType = identifierType.oneOf(Object.keys(resource.attributes));
+	const inAttributesType = identifierType.oneOf(Object.keys(resource.attributes));
 	// is one of the resources?
-	var inResourcesType = identifierType.oneOf(Object.keys(context.resources));
+	const inResourcesType = identifierType.oneOf(Object.keys(context.resources));
 	// a set of attributes
-	var attributeType = typs().matchesAny([
+	const attributeType = typs().matchesAny([
 		typs().hollow(),
 		typs().keyable().andEachMapEntry().matches({
 			// reserved words
@@ -53,6 +52,4 @@ var validateResourceDescription = function (resource, context) {
 		}),
 		methods: typs().array().notEmpty().andEach().oneOf(['GET', 'DELETE', 'POST', 'PUT'])
 	});
-};
-
-module.exports = validateResourceDescription;
+}

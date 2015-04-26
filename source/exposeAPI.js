@@ -3,27 +3,30 @@
 	returns a function that consumes an URL and a body and returns a response
 */
 
+import typs from 'typs';
+import Promise from 'bluebird';
 
-var typs = require('typs');
-var Promise = require('bluebird');
+import parseRequest from './parseRequest.js';
+import validateResourceRequest from './validateResourceRequest.js';
+import jsonError from './jsonError.js';
 
-var parseRequest = require('./parseRequest.js');
-var validateResourceRequest = require('./validateResourceRequest.js');
-var jsonError = require('./jsonError.js');
+import handleGet from './handleGet.js';
+import handlePost from './handlePost.js';
+import handlePut from './handlePut.js';
+import handleDelete from './handleDelete.js';
 
-var handlers = {
-	'GET': require('./handleGet.js'),
-	'POST': require('./handlePost.js'),
-	'PUT': require('./handlePut.js'),
-	'DELETE': require('./handleDelete.js')
+const handlers = {
+	'GET': handleGet,
+	'POST': handlePost,
+	'PUT': handlePut,
+	'DELETE': handleDelete
 };
 
-
-var exposeAPI = function (context) {
+export default function(context) {
 	// handler function
-	return function (url, method, body) {
+	return (url, method, body) => {
 
-		method = method.toUpperCase();
+		method = (method || '').toUpperCase();
 
 		return Promise.try(() => {
 
@@ -38,7 +41,7 @@ var exposeAPI = function (context) {
 
 			// parse the request URL and builds an intermediate representation
 			// (a request object)
-			var request = parseRequest(url, method, context);
+			const request = parseRequest(url, method, context);
 
 			// empty request? empty response!
 			if (typs(request).Null().check()) {
@@ -83,6 +86,4 @@ var exposeAPI = function (context) {
 			};
 		});
 	};
-};
-
-module.exports = exposeAPI;
+}

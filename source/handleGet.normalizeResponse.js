@@ -1,9 +1,12 @@
+/*!
+	Walk the request searching for "possibility of collection"
+	if all the parent resources are necessarily single, then we return a single object
+	otherwise, if even just one parent resource can be a collection, return a collection
+*/
+
 import typs from 'typs';
 
 export default function (request, response) {
-	// walk the request searching for "possibility of collection"
-	// if all the parent resources are necessarily single, then we return a single object
-	// otherwise, if even just one parent resource can be a collection, return a collection
 	let is_single = true;
 	let parent_resource = request;
 	do {

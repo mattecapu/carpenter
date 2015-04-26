@@ -3,13 +3,12 @@
 	Expand shortcuts to have a more comfortable structure to deal with in the code
 */
 
-var typs = require('typs');
+import typs from 'typs';
+import domains from './domains.js';
 
-var domains = require('./domains.js');
+export default function (description) {
 
-var normalizeResourceDescription = function (description) {
-
-	let normalize_attributes = (attributes) => {
+	const normalize_attributes = (attributes) => {
 		// converts the shortcut {'field': 'type'} to the extended description
 		Object.keys(attributes).forEach((key) => {
 			if (typs(attributes[key]).type().check()) {
@@ -17,7 +16,7 @@ var normalizeResourceDescription = function (description) {
 			}
 		});
 		return attributes;
-	}
+	};
 
 	description.primary_key = description.primary_key || 'id';
 	description.sql_table = description.sql_table || description.type;
@@ -77,5 +76,3 @@ var normalizeResourceDescription = function (description) {
 
 	return description;
 }
-
-module.exports = normalizeResourceDescription;

@@ -3,9 +3,9 @@
 	collection of common attribute types
 */
 
-var typs = require('typs');
+import typs from 'typs';
 
-var domains = {
+export default {
 	id: typs().integer().positive().notZero(),
 	email: typs().string().regex(/[a-z0-9!#$%&'*+\/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*@(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+(?:[A-Z]{2}|com|org|net|edu|gov|mil|biz|info|mobi|name|aero|asia|jobs|museum)\b/i),
 	flag: typs().matchesAny([typs().oneOf([0, 1]), typs().bool()]),
@@ -17,5 +17,3 @@ var domains = {
 
 	custom: typs()
 };
-
-module.exports = domains;

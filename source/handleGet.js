@@ -11,7 +11,6 @@ import mergeResults from './handleGet.mergeResults.js';
 import normalizeResponse from './handleGet.normalizeResponse.js';
 import unserializeKey from './queryBuilder.unserializeKey.js';
 
-
 export default function (request, body, context) {
 	squel.useFlavour('mysql');
 
@@ -21,8 +20,6 @@ export default function (request, body, context) {
 
 		let response = {};
 		const status = results.length > 0 ? 200 : 404;
-
-		require('eyes').inspect(request);			
 
 		let structured_results = [];
 		results.forEach((res, i) => {

@@ -160,4 +160,4 @@ export function selectBy (request, context) {
 	query = addFields(filterBy(query, request.main, context), request.main, base_alias);
 
 	return query;
-};
+}

@@ -2,21 +2,19 @@
 	Validate a resource request
 */
 
+import typs from 'typs';
 
-var typs = require('typs');
+import assertResourceExists from './assertResourceExists.js';
+import domains from './domains.js'
+import jsonError from './jsonError.js';
 
-var assertResourceExists = require('./assertResourceExists.js');
-var domains = require('./domains.js');
-var jsonError = require('./jsonError.js');
-
-
-var allFieldsExist = function (fields, resource_type, context) {
+const allFieldsExist = (fields, resource_type, context) => {
 	return typs(fields).andEach().oneOf(
 		Object.keys(context.resources[resource_type].columns)
 	).check();
 };
 
-var validateResourceRequest = function (request, context) {
+export default function (request, context) {
 	
 	// validate related resources
 	if (typs(request.related).def().check()) {
@@ -51,7 +49,7 @@ var validateResourceRequest = function (request, context) {
 		});
 	}
 
-	var filters_fields = request.filters.map((f) => f.field);
+	const filters_fields = request.filters.map((f) => f.field);
 	if (!allFieldsExist(filters_fields, request.type, context)) {
 		throw new jsonError({
 			title: 'Unknown fields',
@@ -60,7 +58,7 @@ var validateResourceRequest = function (request, context) {
 		});
 	}
 
-	var sorters_fields = request.sorters.map((f) => f.field);
+	const sorters_fields = request.sorters.map((f) => f.field);
 	if (!allFieldsExist(sorters_fields, request.type, context)) {
 		throw new jsonError({
 			title: 'Unknown fields',
@@ -73,6 +71,4 @@ var validateResourceRequest = function (request, context) {
 	if (typs(request.superset).def().check()) {
 		validateResourceRequest(request.superset, context);
 	}
-};
-
-module.exports = validateResourceRequest;
+}

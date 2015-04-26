@@ -3,18 +3,16 @@
 	parses an URL following the JSON API format specification
 */
 
+import url_parser from 'url';
+import typs from 'typs';
 
-var url_parser = require('url');
-var typs = require('typs');
+import jsonError from './jsonError.js';
+import assertResourceExists from './assertResourceExists.js';
 
-var jsonError = require('./jsonError.js');
-var assertResourceExists = require('./assertResourceExists.js');
-
-
-var parse = function (resource_obj, query, context) {
+const parse = (resource_obj, query, context) => {
 
 	let key = '';
-	let res_key = resource_obj.relationship ? resource_obj.relationship.name : resource_obj.type;
+	const res_key = resource_obj.relationship ? resource_obj.relationship.name : resource_obj.type;
 
 	// is the client asking for a particular subset of fields?
 	resource_obj.fields = resource_obj.fields || [];
@@ -51,7 +49,7 @@ var parse = function (resource_obj, query, context) {
 	return resource_obj;
 };
 
-var unnest = function (path, root, context) {
+const unnest = (path, root, context) => {
 
 	let path_index = 0;
 	let parent_resource = root;
@@ -91,7 +89,7 @@ var unnest = function (path, root, context) {
 	return parent_resource;
 }
 
-var parseRequest = function (url, method, context) {
+export default function (url, method, context) {
 
 	// request representation
 	let request = {main: {}, related: []};
@@ -108,7 +106,7 @@ var parseRequest = function (url, method, context) {
 	if (0 === path.length) return null;
 
 	// root resource (the first specified collection in the URL)
-	var root = {
+	let root = {
 		type: path[0],
 		ids: path.length > 1 ? path[1].split(',') : ['any']
 	};
@@ -146,27 +144,30 @@ var parseRequest = function (url, method, context) {
 	if (method === 'GET' && typs(query.include).def().check()) {
 		// get all the resources and their constraints (see main)
 		request.related =
-			query.include.split(',')
+			query.include.split(',').map(x => x.trim())
 				// parse relationship path (i.e. comments.post.author)
 				.map((rel) => rel.split('.').map((x) => [x, 'any']).reduce((f, o) => f.concat(o), []))
 				// resolve request
 				.map((rel) => unnest(rel, request.main, context))
 				// remove last filter for related resource because they're already filtered at top level
 				// (it messes up with query building)
-				.map((resource) => {
-					let parent = resource;
+				.map((rel) => {
+					let parent = rel;
 					// dig down until we found the root request
 					while (typs(parent.superset).notEquals(request.main).check()) {
 						parent = parent.superset;
 					}
 					delete parent.superset;
-					return resource;
+					return rel;
 				})
 				// parse the rest of parameters
-				.map((resource) => parse(resource, query, context));
+				.map((rel) => parse(rel, query, context))
+				// flag directly requested relationships
+				.map((rel) => {
+					rel.directly_requested = true;
+					return rel;
+				});
 	}
 
 	return request;
-};
-
-module.exports = parseRequest;
+}
