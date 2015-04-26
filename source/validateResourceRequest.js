@@ -14,7 +14,7 @@ const allFieldsExist = (fields, resource_type, context) => {
 	).check();
 };
 
-export default function (request, context) {
+function validateResourceRequest(request, context) {
 	
 	// validate related resources
 	if (typs(request.related).def().check()) {
@@ -72,3 +72,5 @@ export default function (request, context) {
 		validateResourceRequest(request.superset, context);
 	}
 }
+
+export {validateResourceRequest as default};
