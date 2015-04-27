@@ -2,24 +2,24 @@
 	DELETE requests handler
 */
 
+import squel from 'squel';
+import Promise from 'bluebird';
 
-var squel = require('squel');
-var Promise = require('bluebird');
+import {filterBy} from './queryBuilder.js';
 
-var {filterBy} = require('./queryBuilder.js');
-
-
-var handleDelete = function (request, body, context) {
+export default function (request, body, context) {
 	squel.useFlavour('mysql');
 
 	return context.callQuery(
-		filterBy(squel.remove().from(context.resources[resource_request.resource].sql_table), request.primary, context)
+		filterBy(
+			squel.remove().from(context.resources[request.main.type].sql_table),
+			request.main,
+			context
+		)
 	).spread((stats) => {
 		return {
 			response: {},
 			status: (stats.affectedRows ? 204 : 404)
 		}
 	});
-};
-
-module.exports = handleDelete;
+}

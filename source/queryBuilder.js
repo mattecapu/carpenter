@@ -10,27 +10,36 @@ import squel from 'squel';
 export function filterBy(query, request, context) {
 
 	const resource = context.resources[request.type];
+	const makeFieldName = (type, field) => context.resources[type].sql_table + '.' + context.resources[type][field];
 
 	if (typs(request.superset).def().check()) {
-		query =	query.where(
-			// the primary key of the request resource
-			request.type + '.' + context.resources[request.type].primary_key + ' IN ?',
-			// is in the values returned by the relationship
-			squel.select()
-				.from(request.relationship.sql_table)
-				.field(request.relationship.to_key)
-				// filter from the superset
-				.where(
-					request.relationship.from_key + ' IN ?',
-					filterBy(
-						squel.select()
-							.from(context.resources[request.superset.type].sql_table)
-							.field(context.resources[request.superset.type].primary_key),
-						request.superset,
-						context
-					)
-				)
-		);
+
+		const relationship_clause = [
+			request.relationship.sql_table + '.' + request.relationship.from_key + ' IN ?',
+			filterBy(
+				squel.select()
+					.field(makeFieldName(request.superset.type, 'primary_key'))
+					.from(context.resources[request.superset.type].sql_table),
+				request.superset,
+				context
+			)
+		];
+
+		if (context.resources[request.type].sql_table === request.relationship.sql_table) {
+			query = query.where.apply(query, relationship_clause)
+		} else {
+			const subquery =
+				squel.select()
+					.field(request.relationship.sql_table + '.' + request.relationship.to_key)
+					.from(request.relationship.sql_table);
+
+			query =	query.where(
+				// the primary key of the request resource
+				makeFieldName(request.type, 'primary_key') + ' IN ?',
+				// is in the values returned by the relationship
+				subquery.where.apply(subquery, relationship_clause)
+			);
+		}
 	}
 
 	if (typs(request.ids).def().check() && request.ids[0] !== 'any') {
