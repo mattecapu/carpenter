@@ -9,86 +9,8 @@ import typs from 'typs';
 import jsonError from './jsonError.js';
 import assertResourceExists from './assertResourceExists.js';
 import keypath from './keypath.js';
-
-const parse = (resource_obj, query, context) => {
-
-	let key = '';
-	const res_key = resource_obj.relationship ? keypath(resource_obj) : resource_obj.type;
-
-	// is the client asking for a particular subset of fields?
-	resource_obj.fields = resource_obj.fields || [];
-	key = 'fields[' + res_key + ']';
-	if (typs(query[key]).def().check()) {
-		resource_obj.fields = query[key].split(',');
-	} else if (0 === resource_obj.fields.length) {
-		// if not, add all fields
-		resource_obj.fields = Object.keys(context.resources[resource_obj.type].attributes);
-	}
-
-	// is the client asking for a particular sorting?
-	resource_obj.sorters = resource_obj.sorters || [];
-	key = 'sort[' + res_key + ']';
-	if (typs(query[key]).def().check()) {
-		resource_obj.sorters = query[key].split(',').map((field) => {
-			return {
-				field: field.slice(1),
-				// fields are prefixed with + for ascending order and - for descending
-				asc: field[0] === '+'
-			};
-		});
-	}
-
-	// is the client asking for a filtered response?
-	resource_obj.filters = resource_obj.filters || [];
-	Object.keys(context.resources[resource_obj.type].attributes).forEach((field) => {
-		key = res_key + '[' + field + ']';
-		if (typs(query[key]).def().check()) {
-			resource_obj.filters.push({field, values: query[key].split(',')});
-		}
-	});
-
-	return resource_obj;
-};
-
-const unnest = (path, root, context) => {
-
-	let path_index = 0;
-	let parent_resource = root;
-
-	// is a path to a related resource?
-	while(typs(path[path_index]).def().check()) {
-
-		// recover the relationship data from the resource description
-		let relationship = context.resources[parent_resource.type].relationships.filter((r) => r.name === path[path_index])[0];
-
-		if (typs(relationship).undef().check()) {
-			throw new jsonError({
-				title: 'Bad request',
-				detail: '\'' + path[path_index] + '\' is not a relationship of \'' + parent_resource.type + '\'',
-				status: 404
-			});
-		}
-
-		// that becomes the main resource of the request
-		parent_resource = {
-			relationship: relationship,
-			type: relationship.type,
-			superset: parse(parent_resource, {}, context)
-		};
-
-		if (relationship.to === 'many') {
-			parent_resource.ids = path.length > path_index + 1 ? path[path_index + 1].split(',') : ['any'];
-			// skip ids
-			++path_index;
-		} else if (path[path_index + 1] === 'any') {
-			++path_index;
-		}
-
-		// let's proceed with the next tokens
-		++path_index;
-	}
-	return parent_resource;
-}
+import parseParams from './parseRequest.parseParams.js';
+import parseSchemaHierarchy from './parseRequest.parseSchemaHierarchy.js';
 
 export default function (url, method, context) {
 
@@ -116,15 +38,15 @@ export default function (url, method, context) {
 	assertResourceExists(root.type, context);
 
 	// main resource
-	request.main = unnest(path.slice(2), root, context);
+	request.main = parseSchemaHierarchy(path.slice(2), root, context);
 
 	// for this parameters, the name of the main resource can be omitted
 	// if it's the only one in the response
 	// let's normalize that behaviour
-	if (typs(query['fields[' + request.main.type +']']).undef().check()) {
+	if (query['fields[' + request.main.type +']'] === undefined) {
 		query['fields[' + request.main.type +']'] = query.fields;
 	}
-	if (typs(query['sort[' + request.main.type +']']).undef().check()) {
+	if (query['sort[' + request.main.type +']'] === undefined) {
 		query['sort[' + request.main.type +']'] = query.sort;
 	}
 	delete query.sort;
@@ -132,24 +54,24 @@ export default function (url, method, context) {
 
 	// normalize filters (<field>=<value>) for the main resource
 	Object.keys(context.resources[request.main.type].attributes).forEach((field) => {
-		let key = request.main.type + '[' + field + ']';
-		if (typs(query[key]).undef().check()) {
-			query[key] = query[field];
+		let key = (request.main.relationship ? keypath(request.main) : request.main.type) + '[' + field + ']';
+		if (query[key] === undefined) {
+			query[key] = query[key] || query[field];
 		}
 		delete query[field];
 	});
 
-	request.main = parse(request.main, query, context);
+	request.main = parseParams(request.main, query, context);
 
 	// is the client asking also for related resources?
-	if (method === 'GET' && typs(query.include).def().check()) {
+	if (method === 'GET' && query.include !== undefined) {
 		// get all the resources and their constraints (see main)
 		request.related =
 			query.include.split(',').map(x => x.trim())
 				// parse relationship path (i.e. comments.post.author)
 				.map((rel) => rel.split('.').map((x) => [x, 'any']).reduce((f, o) => f.concat(o), []))
 				// resolve request
-				.map((rel) => unnest(rel, request.main, context))
+				.map((rel) => parseSchemaHierarchy(rel, request.main, context))
 				// remove last filter for related resource because they're already filtered at top level
 				// (it messes up with query building)
 				.map((rel) => {
@@ -162,7 +84,7 @@ export default function (url, method, context) {
 					return rel;
 				})
 				// parse the rest of parameters
-				.map((rel) => parse(rel, query, context))
+				.map((rel) => parseParams(rel, query, context))
 				// flag directly requested relationships
 				.map((rel) => {
 					rel.directly_requested = true;
