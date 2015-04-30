@@ -7,7 +7,7 @@ import typs from 'typs';
 import Promise from 'bluebird';
 
 import parseRequest from './parseRequest.js';
-import validateResourceRequest from './validateResourceRequest.js';
+import validateRequest from './validateRequest.js';
 import jsonError from './jsonError.js';
 
 import handleGet from './handleGet.js';
@@ -34,7 +34,7 @@ export default function(context) {
 			if (typs(body).notNull().object().notEmpty().doesntCheck() && (method === 'POST' || method === 'PUT')) {
 				throw new jsonError({
 					title: 'Bad request',
-					detail: method + ' requests require a non-empty JSON object as the request body',
+					details: method + ' requests require a non-empty JSON object as the request body',
 					status: 400
 				});
 			}
@@ -49,13 +49,13 @@ export default function(context) {
 			}
 
 			// let's check it's all ok with the request
-			validateResourceRequest(request, context);
+			validateRequest(request, context);
 
 			// is method supported by the resource? we hope so
 			if (typs(method).oneOf(context.resources[request.main.type].methods).doesntCheck()) {
 				throw new jsonError({
 					title: 'Method not supported',
-					detail: method + ' requests are not supported for this end-point',
+					details: method + ' requests are not supported for this end-point',
 					status: 405
 				});
 			}
@@ -71,7 +71,7 @@ export default function(context) {
 			if (error instanceof Error) {
 				error = new jsonError({
 					title: 'Unexpected error',
-					detail: error.message,
+					details: error.message,
 					status: 500
 				});
 			} else if (!(error instanceof jsonError)) {

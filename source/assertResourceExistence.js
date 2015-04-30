@@ -8,7 +8,7 @@ export default function (resource, context) {
 	if (context.resources[resource] === undefined) {
 		throw new jsonError({
 			title: 'Resource not found',
-			detail: '\'' + resource + '\' doesn\'t exist',
+			details: '\'' + resource + '\' doesn\'t exist',
 			status: 404
 		});
 	}

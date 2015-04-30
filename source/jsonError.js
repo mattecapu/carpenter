@@ -2,11 +2,11 @@
 	JSON API Error object
 */
 
-export default function ({title, detail, status, code, href, links, path, id}) {
+export default function ({title, details, status, code, href, links, path, id}) {
 	// essential info
 	this.object = {
 		title: title || 'Error',
-		detail: detail || 'A unspecified error was fired by the application',
+		details: details || 'A unspecified error was fired by the application',
 		status: status || 400
 	};
 

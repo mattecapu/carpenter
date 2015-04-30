@@ -7,7 +7,7 @@ import url_parser from 'url';
 import typs from 'typs';
 
 import jsonError from './jsonError.js';
-import assertResourceExists from './assertResourceExists.js';
+import assertResourceExistence from './assertResourceExistence.js';
 import keypath from './keypath.js';
 import parseParams from './parseRequest.parseParams.js';
 import parseSchemaHierarchy from './parseRequest.parseSchemaHierarchy.js';
@@ -35,7 +35,7 @@ export default function (url, method, context) {
 	};
 
 	// check existence of the resource collection
-	assertResourceExists(root.type, context);
+	assertResourceExistence(root.type, context);
 
 	// main resource
 	request.main = parseSchemaHierarchy(path.slice(2), root, context);

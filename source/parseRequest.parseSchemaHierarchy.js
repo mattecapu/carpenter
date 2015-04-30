@@ -19,7 +19,7 @@ export default function (path, root, context) {
 		if (relationship === undefined) {
 			throw new jsonError({
 				title: 'Bad request',
-				detail: '\'' + path[path_segment] + '\' is not a relationship of \'' + parent_resource.type + '\'',
+				details: '\'' + path[path_segment] + '\' is not a relationship of \'' + parent_resource.type + '\'',
 				status: 404
 			});
 		}

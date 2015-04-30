@@ -6,8 +6,8 @@ import typs from 'typs';
 import Promise from 'bluebird';
 
 import jsonError from './jsonError.js';
-import validateResourceDescription from './validateResourceDescription.js';
-import normalizeResourceDescription from './normalizeResourceDescription.js';
+import validateSchema from './validateSchema.js';
+import normalizeSchema from './normalizeSchema.js';
 import exposeAPI from './exposeAPI.js';
 
 // query function
@@ -61,34 +61,34 @@ class Carpenter {
 				case 'ER_NO_REFERENCED_ROW_2':
 					throw new jsonError({
 						title: 'Schema exception',
-						detail: 'The entity you are adding/updating makes one or more foreign key fail or references an inexistent entity'
+						details: 'The entity you are adding/updating makes one or more foreign key fail or references an inexistent entity'
 					});
 				case 'ER_DUP_ENTRY':
 					throw new jsonError({
 						title: 'Schema exception',
-						detail: 'The entity you are adding/updating makes a unique key fail'
+						details: 'The entity you are adding/updating makes a unique key fail'
 					});
 				case 'ECONNREFUSED':
 					throw new jsonError({
 						title: 'Database exception',
-						detail: 'Can\'t connect to the database',
+						details: 'Can\'t connect to the database',
 						status: 500
 					});
 				default:
 					throw new jsonError({
 						title: 'Schema exception',
-						detail: 'Your request isn\'t compatible with the current schema of data (error \'' + error.cause.code + '\')'
+						details: 'Your request isn\'t compatible with the current schema of data (error \'' + error.cause.code + '\')'
 					});
 			}
 		});
 	}
 	// validates and then adds a new resource to the API
 	declareResource(description) {
-		this.resources[description.type] = normalizeResourceDescription(description);
+		this.resources[description.type] = normalizeSchema(description);
 		return this;
 	}
 	exposeAPI() {
-		if (typs(this.resources).notEmpty().andEachProp().satisfies((x) => validateResourceDescription(x, this)).doesntCheck()) {
+		if (typs(this.resources).notEmpty().andEachProp().satisfies((x) => validateSchema(x, this)).doesntCheck()) {
 			throw new Error('resource description is not valid');
 		}
 		if (typs(query_fn).func().doesntCheck()) {
