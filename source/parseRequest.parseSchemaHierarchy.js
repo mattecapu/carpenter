@@ -14,7 +14,7 @@ export default function (path, root, context) {
 	while(path[path_segment] !== undefined) {
 
 		// recover the relationship data from the resource description
-		const relationship = context.resources[parent_resource.type].relationships.filter((r) => r.name === path[path_segment])[0];
+		const relationship = context.resources[parent_resource.type].relationships[path[path_segment]];
 
 		if (relationship === undefined) {
 			throw new jsonError({

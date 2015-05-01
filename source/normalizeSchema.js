@@ -23,7 +23,7 @@ export default function (description) {
 	description.methods = description.methods.map((method) => method.toUpperCase());
 
 	description.attributes = normalize_attributes(description.attributes || {});
-	description.attributes.id = {domain: domains.id, sql_column: 'id'};
+	description.attributes[description.primary_key] = {domain: domains.id, sql_column: description.primary_key};
 
 	// all the columns of the MySQL table
 	description.columns = {};
@@ -71,8 +71,6 @@ export default function (description) {
 			relationship.to_key = relationship.to_key || name.slice(0, -1) + '_id';
 		}
 	});
-	// convert the map to an array for easier iteration
-	description.relationships = Object.keys(description.relationships).map((x) => description.relationships[x]);
 
 	return description;
 }
