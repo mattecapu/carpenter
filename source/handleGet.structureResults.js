@@ -1,5 +1,5 @@
 /*!
-	Merges results from SELECT queries
+	Structures results from SELECT queries
 	eliminating JOIN's artifact
 */
 
@@ -14,11 +14,12 @@ const root_rel = (rel) => {
 };
 const build_tree = (rels) => {
 	// roots are all the bottom resources in the superset chain
-	const roots = rels.map((rel) => root_rel(rel))
-					// remove dupes
-					.filter((rel, i, all) => {
-						return i === all.map(x => keypath(x)).indexOf(keypath(rel))
-					});
+	const roots =
+		rels.map((rel) => root_rel(rel))
+		// remove dupes
+		.filter((rel, i, all) => {
+			return i === all.map(x => keypath(x)).indexOf(keypath(rel))
+		});
 	// build the rest of the tree
 	roots.forEach((root) => {
 		root.children = build_tree(
@@ -39,7 +40,8 @@ const build_tree = (rels) => {
 	return roots;
 };
 
-const mergeArray = (unmerged, parent_type, tree, context) => {
+
+const structureArray = (unmerged, parent_type, tree, context) => {
 
 	// utility equivalent to is_array(x) ? x : [x]
 	const arrayfy = (x) => [].concat(x);
@@ -56,10 +58,10 @@ const mergeArray = (unmerged, parent_type, tree, context) => {
 	let merged = [];
 
 	merged = unmerged.reduce((merged, to_merge) => {
-		const first_occurence = merged.every((already_merged) => {
+		const is_first_occurence = merged.every((already_merged) => {
 			// if we found an occurence of this resource
 			// before, merge it to the previous resource
-			if (already_merged[pk] === to_merge[pk]) {
+			if (already_merged[pk] === to_merge[pk] && to_merge[pk] !== null) {
 				merge(already_merged, to_merge);
 				return false;
 			}
@@ -69,7 +71,7 @@ const mergeArray = (unmerged, parent_type, tree, context) => {
 		// the resource, we push it to the collection,
 		// otherwise we merged it before so we just
 		// return the collection as-is
-		if (!first_occurence) return merged;
+		if (!is_first_occurence) return merged;
 		return merged.concat(to_merge);
 	}, []);
 
@@ -79,24 +81,34 @@ const mergeArray = (unmerged, parent_type, tree, context) => {
 	tree.forEach((rel) => {
 		merged.forEach((res) => {
 			const key = rel.relationship.name;
-			if (rel.relationship.to === 'many') res[key] = arrayfy(res[key]);
+			if (rel.relationship.to === 'many') {
+				res[key] = arrayfy(res[key]);
+				if (res[key][0][context.resources[rel.relationship.type].primary_key] === null) {
+					res[key] = [];
+				}
+			}
 		});
 	});
 
 	// recursive step: merge subresources
 	tree.forEach((rel) => {
 		merged.forEach((res) => {
-			let key = rel.relationship.name;
+			const key = rel.relationship.name;
 			// merges subresources
-			res[key] = mergeArray(
+			res[key] = structureArray(
 				arrayfy(res[key]),
 				rel.type,
 				rel.children,
 				context
 			);
 			// we unwrap one-to-one relationships from the
-			// array container which mergeArray() puts
-			if (rel.relationship.to === 'one') res[key] = res[key][0];
+			// array container which structureArray() puts
+			if (rel.relationship.to === 'one') {
+				res[key] = res[key][0];
+				if (res[key][0][context.resources[rel.relationship.type].primary_key] === null) {
+					res[key] = null;
+				}
+			}
 		})
 	});
 
@@ -104,7 +116,7 @@ const mergeArray = (unmerged, parent_type, tree, context) => {
 };
 
 export default function (results, request, context) {
-	return mergeArray(
+	return structureArray(
 		results.map(x => x[request.main.type]),
 		request.main.type,
 		build_tree(request.related),

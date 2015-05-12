@@ -104,28 +104,27 @@ export function selectBy (request, context) {
 			const rel_superset = rel.superset || request.main;
 			const rel_superset_alias = typs(rel.superset).def().check() ? makeAlias(rel.superset) : base_alias;
 
-			if (typs(rel_alias).oneOf(joined).doesntCheck()) {
-				// table where is stored the related resource
-				query = query.join(
-					context.resources[rel.relationship.type].sql_table,
-					rel_alias
-				);
-				joined.push(rel_alias);
-			}
 			if (typs(rel_info_alias).oneOf(joined).doesntCheck()) {
 				// table where is stored the relationship
-				query = query.join(
+				query = query.left_join(
 					rel.relationship.sql_table,
 					rel_info_alias,
-					rel_alias + '.' + context.resources[rel.relationship.type].primary_key +
-					' = ' +
-					rel_info_alias + '.' + rel.relationship.to_key +
-					' AND ' +
 					rel_info_alias + '.' + rel.relationship.from_key +
 					' = ' +
 					rel_superset_alias + '.' + context.resources[rel_superset.type].primary_key
 				);
 				joined.push(rel_info_alias);
+			}
+			if (typs(rel_alias).oneOf(joined).doesntCheck()) {
+				// table where is stored the related resource
+				query = query.left_join(
+					context.resources[rel.relationship.type].sql_table,
+					rel_alias,
+					rel_alias + '.' + context.resources[rel.relationship.type].primary_key +
+					' = ' +
+					rel_info_alias + '.' + rel.relationship.to_key
+				);
+				joined.push(rel_alias);
 			}
 
 			return query;

@@ -7,7 +7,7 @@ import Promise from 'bluebird';
 import typs from 'typs';
 
 import {filterBy, selectBy} from './queryBuilder.js';
-import mergeResults from './handleGet.mergeResults.js';
+import structureResults from './handleGet.structureResults.js';
 import normalizeResponse from './handleGet.normalizeResponse.js';
 import unserializeKey from './queryBuilder.unserializeKey.js';
 
@@ -17,23 +17,22 @@ export default function (request, body, context) {
 	let query = selectBy(request, context);
 
 	return context.callQuery(query).then(([results]) => {
-
 		let response = {};
 		const status = results.length > 0 ? 200 : 404;
 
-		let structured_results = [];
+		let unserializedResults = [];
 		results.forEach((res, i) => {
-			structured_results.push({});
+			unserializedResults.push({});
 			Object.keys(res).forEach((key) => {
-				unserializeKey(res, structured_results[structured_results.length - 1], key);
+				unserializeKey(res, unserializedResults[unserializedResults.length - 1], key);
 			})
 		});
 
-		// merges duplicated (JOINs artefact)
-		response[request.main.type] = mergeResults(structured_results, request, context);
+		// merges duplicates and structures the response (removes JOINs artefacts)
+		response[request.main.type] = structureResults(unserializedResults, request, context);
 		// if a single object was requested, return it as an object and not as a collection
 		response = normalizeResponse(request.main, response);
 
 		return {response, status};
 	});
-};
+}
