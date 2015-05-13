@@ -56,7 +56,9 @@ export default function (description) {
 
 			// if the relationship is on the same table, let's add it to the columns vector
 			if (relationship.sql_table === description.sql_table) {
-				description.columns[name] = relationship.from_key;
+				// relationship column
+				description.columns[name] = relationship.to_key;
+				// relationship attributes columns
 				Object.keys(relationship.attributes).forEach((attribute) => {
 					description.columns[attribute] = relationship.attributes[attribute].sql_column;
 				});

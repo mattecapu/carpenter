@@ -44,7 +44,7 @@ export default function (resource, context) {
 				// related resource
 				type: inResourcesType,
 				// optional additional attributes
-				attributes: attributeType,
+				attributes: attributeType.not(inAttributesType),
 				sql_table: identifierType,
 				from_key: identifierType,
 				to_key: identifierType
