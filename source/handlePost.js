@@ -16,20 +16,6 @@ export default function (request, body, context) {
 	// short-hand
 	const new_res_info = context.resources[request.main.type];
 
-	// maybe the body is already parsed by some clever
-	// middleware in the user routing layer, who knows
-	if (typs(body).object().doesntCheck()) {
-		try {
-			body = JSON.parse(body);
-		} catch(e) {
-			throw new jsonError({
-				title: 'Payload format WTF',
-				details: 'The request payload must be a valid JSON object',
-				status: 415
-			});
-		}
-	}
-
 	// can't POST a resource to a to-one relationship
 	if (request.main.relationship && request.main.relationship.to === 'one') {
 		throw new jsonError({

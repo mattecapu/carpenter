@@ -31,12 +31,16 @@ export default function(context) {
 		return Promise.try(() => {
 
 			// check if it's a PUT/POST request, and thus requires a body
-			if (typs(body).notNull().object().notEmpty().doesntCheck() && (method === 'POST' || method === 'PUT')) {
-				throw new jsonError({
-					title: 'Bad request',
-					details: method + ' requests require a non-empty JSON object as the request body',
-					status: 400
-				});
+			if (typs(body).notNull().object().doesntCheck() && (method === 'POST' || method === 'PUT')) {
+				try {
+					body = JSON.parse(body);
+				} catch(e) {
+					throw new jsonError({
+						title: 'Payload format WTF',
+						details: method + ' requests require a non-empty JSON object as the request body',
+						status: 415
+					});
+				}
 			}
 
 			// parse the request URL and builds an intermediate representation
