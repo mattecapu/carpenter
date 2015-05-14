@@ -105,7 +105,7 @@ const structureArray = (unmerged, parent_type, tree, context) => {
 			// array container which structureArray() puts
 			if (rel.relationship.to === 'one') {
 				res[key] = res[key][0];
-				if (res[key][0][context.resources[rel.relationship.type].primary_key] === null) {
+				if (res[key][context.resources[rel.relationship.type].primary_key] === null) {
 					res[key] = null;
 				}
 			}
