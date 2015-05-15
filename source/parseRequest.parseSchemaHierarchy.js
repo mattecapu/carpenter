@@ -31,11 +31,10 @@ export default function (path, root, context) {
 			superset: parseParams(parent_resource, {}, context)
 		};
 
-		if (relationship.to === 'many') {
-			parent_resource.ids = path.length > path_segment + 1 ? path[path_segment + 1].split(',') : ['any'];
-			// skip ids
-			++path_segment;
-		} else if (path[path_segment + 1] === 'any') {
+		if (Object.keys(context.resources[parent_resource.type].relationships).indexOf(path[path_segment + 1]) > -1) {
+			parent_resource.ids = [];
+		} else {
+			parent_resource.ids = path.length > path_segment + 1 ? path[path_segment + 1].split(',') : [];
 			++path_segment;
 		}
 

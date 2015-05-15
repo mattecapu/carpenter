@@ -8,7 +8,6 @@ import typs from 'typs';
 
 import jsonError from './jsonError.js';
 import assertResourceExistence from './assertResourceExistence.js';
-import keypath from './keypath.js';
 import parseParams from './parseRequest.parseParams.js';
 import parseSchemaHierarchy from './parseRequest.parseSchemaHierarchy.js';
 
@@ -18,20 +17,20 @@ export default function (url, method, context) {
 	let request = {main: {}, related: []};
 
 	// parse the URL string
-	let parsed = url_parser.parse(url, true);
+	const parsed = url_parser.parse(url, true);
 	let path = parsed.pathname.split('/');
 	let query = parsed.query;
 
 	// trim path
-	if ('' === path[0]) path.shift();
-	if ('' === path[path.length - 1]) path.pop();
+	if (path[0] === '') path.shift();
+	if (path[path.length - 1] === '') path.pop();
 
-	if (0 === path.length) return null;
+	if (path.length === 0) return null;
 
 	// root resource (the first specified collection in the URL)
-	let root = {
+	const root = {
 		type: path[0],
-		ids: path.length > 1 ? path[1].split(',') : ['any']
+		ids: path.length > 1 ? path[1].split(',') : []
 	};
 
 	// check existence of the resource collection
@@ -41,20 +40,20 @@ export default function (url, method, context) {
 	request.main = parseSchemaHierarchy(path.slice(2), root, context);
 
 	// for this parameters, the name of the main resource can be omitted
-	// if it's the only one in the response
-	// let's normalize that behaviour
-	if (query['fields[' + request.main.type +']'] === undefined) {
-		query['fields[' + request.main.type +']'] = query.fields;
+	// if it's the only one in the response: let's normalize that behaviour
+	const res_key = request.main.relationship ? request.main.relationship.name : request.main.type;
+	if (query['fields[' + res_key +']'] === undefined) {
+		query['fields[' + res_key +']'] = query.fields;
 	}
-	if (query['sort[' + request.main.type +']'] === undefined) {
-		query['sort[' + request.main.type +']'] = query.sort;
+	if (query['sort[' + res_key +']'] === undefined) {
+		query['sort[' + res_key +']'] = query.sort;
 	}
 	delete query.sort;
 	delete query.fields;
 
 	// normalize filters (<field>=<value>) for the main resource
 	Object.keys(context.resources[request.main.type].attributes).forEach((field) => {
-		let key = (request.main.relationship ? keypath(request.main) : request.main.type) + '[' + field + ']';
+		const key = res_key + '[' + field + ']';
 		if (query[key] === undefined) {
 			query[key] = query[key] || query[field];
 		}
@@ -69,7 +68,7 @@ export default function (url, method, context) {
 		request.related =
 			query.include.split(',').map(x => x.trim())
 				// parse relationship path (i.e. comments.post.author)
-				.map((rel) => rel.split('.').map((x) => [x, 'any']).reduce((f, o) => f.concat(o), []))
+				.map((rel) => rel.split('.'))
 				// resolve request
 				.map((rel) => parseSchemaHierarchy(rel, request.main, context))
 				// remove last filter for related resource because they're already filtered at top level
@@ -91,6 +90,6 @@ export default function (url, method, context) {
 					return rel;
 				});
 	}
-
+require('eyes').inspect(request);
 	return request;
 }
