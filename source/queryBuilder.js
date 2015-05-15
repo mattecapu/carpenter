@@ -9,49 +9,61 @@ import squel from 'squel';
 // adds WHERE clause to a query
 export function filterBy(query, request, context) {
 
-	const resource = context.resources[request.type];
-	const makeFieldName = (type, field) => context.resources[type].sql_table + '.' + context.resources[type][field];
+	const pkColumn = (type) => context.resources[type].primary_key;
+	const makeFieldName = (type, field) => context.resources[type].sql_table + '.' + context.resources[type].columns[field];
+	const pkFieldName = (type) => makeFieldName(type, pkColumn(type));
 
 	if (typs(request.superset).def().check()) {
-
-		const relationship_clause = [
-			request.relationship.sql_table + '.' + request.relationship.from_key + ' IN ?',
-			filterBy(
-				squel.select()
-					.field(makeFieldName(request.superset.type, 'primary_key'))
-					.from(context.resources[request.superset.type].sql_table),
-				request.superset,
-				context
-			)
-		];
+		// add the next clause
+		const apply_relationship_clause = (query) => {
+			if (request.superset.superset !== undefined || request.superset.filters.length > 0) {
+				return query.where(
+					request.relationship.sql_table + '.' + request.relationship.from_key + ' IN ?',
+					filterBy(
+						squel.select()
+							.field(pkFieldName(request.superset.type))
+							.from(context.resources[request.superset.type].sql_table),
+						request.superset,
+						context
+					)
+				);
+			} else if (request.superset.ids.length > 0) {
+				return query.where(
+					request.relationship.sql_table + '.' + request.relationship.from_key + ' IN ?',
+					request.superset.ids
+				);
+			} else {
+				return query;
+			}
+		};
+		
 
 		if (context.resources[request.type].sql_table === request.relationship.sql_table) {
-			query = query.where.apply(query, relationship_clause)
+			query = apply_relationship_clause(query);
 		} else {
-			const subquery =
-				squel.select()
-					.field(request.relationship.sql_table + '.' + request.relationship.to_key)
-					.from(request.relationship.sql_table);
-
 			query =	query.where(
 				// the primary key of the request resource
-				makeFieldName(request.type, 'primary_key') + ' IN ?',
+				pkFieldName(request.type) + ' IN ?',
 				// is in the values returned by the relationship
-				subquery.where.apply(subquery, relationship_clause)
+				apply_relationship_clause(
+					squel.select()
+						.field(request.relationship.sql_table + '.' + request.relationship.to_key)
+						.from(request.relationship.sql_table)
+				)
 			);
 		}
 	}
 
-	if (typs(request.ids).def().check() && request.ids[0] !== 'any') {
-		query = query.where(resource.sql_table + '.' + resource.primary_key + ' IN ?', request.ids);
+	if (request.ids.length > 0) {
+		query = query.where(pkFieldName(request.type) + ' IN ?', request.ids);
 	}
 
 	request.filters.forEach(({field, values}) => {
-		query = query.where(resource.sql_table + '.' + resource.columns[field] + ' IN ?', values);
+		query = query.where(makeFieldName(request.type, field) + ' IN ?', values);
 	});
 
 	request.sorters.forEach(({field, asc}) => {
-		query = query.order(resource.sql_table + '.' + resource.columns[field], asc);
+		query = query.order(makeFieldName(request.type, field), asc);
 	});
 
 	return query;
