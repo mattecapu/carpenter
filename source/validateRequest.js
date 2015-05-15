@@ -28,18 +28,15 @@ function validateRequest(request, context) {
 	
 	assertResourceExistence(request.type, context);
 
-	if (typs(request.ids).notNull().check()) {
-		request.ids.forEach((id) => {
-			if (id === 'any') return;
-			if (typs(id).isnt(domains.id)) {
-				throw new jsonError({
-					title: 'Bad request',
-					details: 'One or more ids specificed for the request are not valid ids',
-					status: 400
-				});
-			}
-		});
-	}
+	request.ids.forEach((id) => {
+		if (typs(id).isnt(context.resources[request.type].attributes[context.resources[request.type].primary_key].domain)) {
+			throw new jsonError({
+				title: 'Bad request',
+				details: 'One or more ids specificed for the request are not valid',
+				status: 400
+			});
+		}
+	});
 
 	if (!allFieldsExist(request.fields, request.type, context)) {
 		throw new jsonError({
