@@ -1,6 +1,6 @@
 /*!
-	Convert a key in the form <key1>$<key2>$<key3>
-	to its object representation
+	Convert a key in the form <key1>$<key2>$<key3>:<value>
+	to its object representation {<key1>: {<key2>: {<key3>: <value>}}}
 */
 
 export default function (source, dest, long_key) {
