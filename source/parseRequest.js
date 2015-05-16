@@ -6,7 +6,6 @@
 import url_parser from 'url';
 import typs from 'typs';
 
-import jsonError from './jsonError.js';
 import assertResourceExistence from './assertResourceExistence.js';
 import parseParams from './parseRequest.parseParams.js';
 import parseSchemaHierarchy from './parseRequest.parseSchemaHierarchy.js';
@@ -19,7 +18,7 @@ export default function (url, method, context) {
 	// parse the URL string
 	const parsed = url_parser.parse(url, true);
 	let path = parsed.pathname.split('/');
-	let querystring = parsed.querystring;
+	let querystring = parsed.query;
 
 	// trim path
 	if (path[0] === '') path.shift();
