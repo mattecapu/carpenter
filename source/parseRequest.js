@@ -19,7 +19,7 @@ export default function (url, method, context) {
 	// parse the URL string
 	const parsed = url_parser.parse(url, true);
 	let path = parsed.pathname.split('/');
-	let query = parsed.query;
+	let querystring = parsed.querystring;
 
 	// trim path
 	if (path[0] === '') path.shift();
@@ -42,31 +42,31 @@ export default function (url, method, context) {
 	// for this parameters, the name of the main resource can be omitted
 	// if it's the only one in the response: let's normalize that behaviour
 	const res_key = request.main.relationship ? request.main.relationship.name : request.main.type;
-	if (query['fields[' + res_key +']'] === undefined) {
-		query['fields[' + res_key +']'] = query.fields;
+	if (querystring['fields[' + res_key +']'] === undefined) {
+		querystring['fields[' + res_key +']'] = querystring.fields;
 	}
-	if (query['sort[' + res_key +']'] === undefined) {
-		query['sort[' + res_key +']'] = query.sort;
+	if (querystring['sort[' + res_key +']'] === undefined) {
+		querystring['sort[' + res_key +']'] = querystring.sort;
 	}
-	delete query.sort;
-	delete query.fields;
+	delete querystring.sort;
+	delete querystring.fields;
 
 	// normalize filters (<field>=<value>) for the main resource
 	Object.keys(context.resources[request.main.type].attributes).forEach((field) => {
 		const key = res_key + '[' + field + ']';
-		if (query[key] === undefined) {
-			query[key] = query[key] || query[field];
+		if (querystring[key] === undefined) {
+			querystring[key] = querystring[key] || querystring[field];
 		}
-		delete query[field];
+		delete querystring[field];
 	});
 
-	request.main = parseParams(request.main, query, context);
+	request.main = parseParams(request.main, querystring, context);
 
 	// is the client asking also for related resources?
-	if (method === 'GET' && query.include !== undefined) {
+	if (method === 'GET' && querystring.include !== undefined) {
 		// get all the resources and their constraints (see main)
 		request.related =
-			query.include.split(',').map(x => x.trim())
+			querystring.include.split(',').map(x => x.trim())
 				// parse relationship path (i.e. comments.post.author)
 				.map((rel) => rel.split('.'))
 				// resolve request
@@ -83,13 +83,13 @@ export default function (url, method, context) {
 					return rel;
 				})
 				// parse the rest of parameters
-				.map((rel) => parseParams(rel, query, context))
+				.map((rel) => parseParams(rel, querystring, context))
 				// flag directly requested relationships
 				.map((rel) => {
 					rel.directly_requested = true;
 					return rel;
 				});
 	}
-require('eyes').inspect(request);
+
 	return request;
 }
