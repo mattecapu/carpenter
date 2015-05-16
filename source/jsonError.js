@@ -3,10 +3,10 @@
 */
 
 export default function ({title, details, status, code, href, links, path, id}) {
-	// essential info
+	// minimal info
 	this.object = {
 		title: title || 'Error',
-		details: details || 'A unspecified error was fired by the application',
+		details: details || 'An unknown error was fired by the application',
 		status: status || 400
 	};
 
