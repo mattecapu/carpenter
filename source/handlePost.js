@@ -152,7 +152,6 @@ export default function (request, body, context) {
 							[info.to_key]: value
 						});
 					})
-					.map(x => {console.log(x.toString()); return x})
 					// execute the queries
 					.map(x => context.callQuery(x));
 

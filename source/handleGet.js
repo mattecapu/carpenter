@@ -3,10 +3,8 @@
 */
 
 import squel from 'squel';
-import Promise from 'bluebird';
-import typs from 'typs';
 
-import {filterBy, selectBy} from './queryBuilder.js';
+import {selectBy} from './queryBuilder.js';
 import structureResults from './handleGet.structureResults.js';
 import normalizeResponse from './handleGet.normalizeResponse.js';
 import unserializeKey from './queryBuilder.unserializeKey.js';
@@ -14,7 +12,7 @@ import unserializeKey from './queryBuilder.unserializeKey.js';
 export default function (request, body, context) {
 	squel.useFlavour('mysql');
 
-	let query = selectBy(request, context);
+	const query = selectBy(request, context);
 
 	return context.callQuery(query).then(([results]) => {
 		let response = {};
