@@ -28,33 +28,44 @@ export default function (url, method, context) {
 
 	// root resource (the first specified collection in the URL)
 	const root = {
-		type: path[0],
-		ids: path.length > 1 ? path[1].split(',') : []
+		type: path[0]
 	};
+	// check if the next path segment is a relationship or an ID filter
+	if (Object.keys(context.resources[root.type]).indexOf(path[1]) !== -1) {
+		root.ids = [];
+	} else {
+		root.ids = path[1] ? path[1].split(',') : [];
+		path = path.slice(1);
+	}
+	path = path.slice(1);
 
-	// check existence of the resource collection
+	// first let's check existence of the root resource collection
 	assertResourceExistence(root.type, context);
 
 	// main resource
-	request.main = parseSchemaHierarchy(path.slice(2), root, context);
+	request.main = parseSchemaHierarchy(path, querystring, root, context);
 
 	// for this parameters, the name of the main resource can be omitted
 	// if it's the only one in the response: let's normalize that behaviour
 	const res_key = request.main.relationship ? request.main.relationship.name : request.main.type;
-	if (querystring['fields[' + res_key +']'] === undefined) {
+	if (querystring['fields[' + res_key +']'] === undefined && querystring.fields !== undefined) {
 		querystring['fields[' + res_key +']'] = querystring.fields;
 	}
-	if (querystring['sort[' + res_key +']'] === undefined) {
+	if (querystring['sort[' + res_key +']'] === undefined && querystring.sort !== undefined) {
 		querystring['sort[' + res_key +']'] = querystring.sort;
 	}
 	delete querystring.sort;
 	delete querystring.fields;
 
 	// normalize filters (<field>=<value>) for the main resource
-	Object.keys(context.resources[request.main.type].attributes).forEach((field) => {
+	let res_attributes = Object.keys(context.resources[request.main.type].attributes);
+	if (request.main.relationship !== undefined) {
+		res_attributes = Object.keys(request.main.relationship.attributes).concat(res_attributes);
+	}
+	res_attributes.forEach((field) => {
 		const key = res_key + '[' + field + ']';
-		if (querystring[key] === undefined) {
-			querystring[key] = querystring[key] || querystring[field];
+		if (querystring[key] === undefined && querystring[field] !== undefined) {
+			querystring[key] = querystring[field];
 		}
 		delete querystring[field];
 	});
@@ -69,7 +80,7 @@ export default function (url, method, context) {
 				// parse relationship path (i.e. comments.post.author)
 				.map((rel) => rel.split('.'))
 				// resolve request
-				.map((rel) => parseSchemaHierarchy(rel, request.main, context))
+				.map((rel) => parseSchemaHierarchy(rel, {}, request.main, context))
 				// remove last filter for related resource because they're already filtered at top level
 				// (it messes up with query building)
 				.map((rel) => {
