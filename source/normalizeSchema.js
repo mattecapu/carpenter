@@ -22,7 +22,7 @@ export default function (description) {
 	description.sql_table = description.sql_table || description.type;
 	description.methods = description.methods.map((method) => method.toUpperCase());
 
-	description.attributes = normalize_attributes(description.attributes || {});
+	description.attributes = normalize_attributes(description.attributes || {}) || {};
 	description.attributes[description.primary_key] = {domain: domains.id, sql_column: description.primary_key};
 
 	// all the columns of the MySQL table
@@ -39,7 +39,7 @@ export default function (description) {
 		// store the name in the object itself for simpler retrieving
 		relationship.name = name;
 		// additional attributes of the relationship
-		relationship.attributes = normalize_attributes(relationship.attributes || {});
+		relationship.attributes = normalize_attributes(relationship.attributes || {}) || {};
 
 		// one to one relationships
 		if (relationship.to === 'one') {
