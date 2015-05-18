@@ -6,12 +6,17 @@
 import typs from 'typs';
 import squel from 'squel';
 
+// utilities to build concisely the name of a field in the form <table>.<column>
+const naming_macros = (context) => {
+	const makeFieldName = (type, field) => context.resources[type].sql_table + '.' + context.resources[type].columns[field];
+	const pkFieldName = (type) => makeFieldName(type, context.resources[type].primary_key);
+	return {makeFieldName, pkFieldName};
+};
+
 // adds WHERE clause to a query
 export function filterBy(query, request, context) {
 
-	const pkColumn = (type) => context.resources[type].primary_key;
-	const makeFieldName = (type, field) => context.resources[type].sql_table + '.' + context.resources[type].columns[field];
-	const pkFieldName = (type) => makeFieldName(type, pkColumn(type));
+	const {makeFieldName, pkFieldName} = naming_macros(context);
 
 	if (typs(request.superset).def().check()) {
 		// add the next clause
@@ -27,6 +32,8 @@ export function filterBy(query, request, context) {
 						context
 					)
 				);
+			// optimization: if we are selecting only by IDs we skip the generation
+			// of a subquery and use directly a IN (<...ids>) clause
 			} else if (request.superset.ids.length > 0) {
 				return query.where(
 					request.relationship.sql_table + '.' + request.relationship.from_key + ' IN ?',
@@ -36,8 +43,8 @@ export function filterBy(query, request, context) {
 				return query;
 			}
 		};
-		
-
+	
+		// we avoid to make subqueries on the same table we are quering (because DELETE wouldn't work)
 		if (context.resources[request.type].sql_table === request.relationship.sql_table) {
 			query = apply_relationship_clause(query);
 		} else {
@@ -53,6 +60,15 @@ export function filterBy(query, request, context) {
 			);
 		}
 	}
+
+	query = addFilters(request, query, context);
+
+	return query;
+}
+
+export function addFilters(request, query, context) {
+
+	const {makeFieldName, pkFieldName} = naming_macros(context);
 
 	if (request.ids.length > 0) {
 		query = query.where(pkFieldName(request.type) + ' IN ?', request.ids);
