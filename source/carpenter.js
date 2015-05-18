@@ -29,7 +29,7 @@ class Carpenter {
 		// the empty query
 		if (typs(sql).Null().check()) return Promise.resolve([{}, {}]);
 
-		// non-squel query
+		// non-squel query (somewhere used)
 		if (typs(sql).string().check()) {
 			const dereferenced_sql = sql;
 			sql = {
@@ -50,7 +50,7 @@ class Carpenter {
 			return next();
 		};
 
-		let {text, values} = sql.toParam();
+		const {text, values} = sql.toParam();
 		return query_fn({sql: text, typeCast: bit_casting}, values).catch((error) => {
 			// Generic error
 			if (!error.cause) throw error;
