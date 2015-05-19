@@ -17,6 +17,7 @@ export default function (request, body, context) {
 	return context.callQuery(query).then(([results]) => {
 		let response = {};
 		const status = results.length > 0 ? 200 : 404;
+		const root_key = request.main.relationship ? request.main.relationship.name : request.main.type;
 
 		let unserializedResults = [];
 		results.forEach((res, i) => {
@@ -27,7 +28,7 @@ export default function (request, body, context) {
 		});
 
 		// merges duplicates and structures the response (removes JOINs artefacts)
-		response[request.main.type] = structureResults(unserializedResults, request, context);
+		response[root_key] = structureResults(unserializedResults, request, context);
 		// if a single object was requested, return it as an object and not as a collection
 		response = normalizeResponse(request.main, response);
 
