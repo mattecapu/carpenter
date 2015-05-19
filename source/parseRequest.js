@@ -30,17 +30,18 @@ export default function (url, method, context) {
 	const root = {
 		type: path[0]
 	};
+
+	// first let's check existence of the root resource collection
+	assertResourceExistence(root.type, context);
+
 	// check if the next path segment is a relationship or an ID filter
-	if (Object.keys(context.resources[root.type]).indexOf(path[1]) !== -1) {
+	if (Object.keys(context.resources[root.type].relationships).indexOf(path[1]) !== -1) {
 		root.ids = [];
 	} else {
 		root.ids = path[1] ? path[1].split(',') : [];
 		path = path.slice(1);
 	}
 	path = path.slice(1);
-
-	// first let's check existence of the root resource collection
-	assertResourceExistence(root.type, context);
 
 	// main resource
 	request.main = parseSchemaHierarchy(path, querystring, root, context);
@@ -76,7 +77,7 @@ export default function (url, method, context) {
 	if (method === 'GET' && querystring.include !== undefined) {
 		// get all the resources and their constraints (see main)
 		request.related =
-			querystring.include.split(',').map(x => x.trim())
+			querystring.include.split(',')
 				// parse relationship path (i.e. comments.post.author)
 				.map((rel) => rel.split('.'))
 				// resolve request
