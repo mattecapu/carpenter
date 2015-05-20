@@ -20,14 +20,6 @@ export default function (path, querystring, root, context) {
 		// recover the relationship data from the resource description
 		const relationship = context.resources[parent_resource.type].relationships[path[path_segment]];
 
-		if (relationship === undefined) {
-			throw new jsonError({
-				title: 'Bad request',
-				details: '\'' + path[path_segment] + '\' is not a relationship of \'' + parent_resource.type + '\'',
-				status: 404
-			});
-		}
-
 		// that becomes the main resource of the request
 		parent_resource = {
 			relationship,
