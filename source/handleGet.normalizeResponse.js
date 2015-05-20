@@ -21,12 +21,13 @@ export default function (request, response) {
 	} while (is_single && typs(parent_resource).def().check());
 
 	if (is_single) {
+		const root_key = request.relationship ? request.relationship.name : request.type;
 		// single object, empty response
-		if (typs(response[request.type][0]).undef().check()) {
+		if (typs(response[root_key][0]).undef().check()) {
 			return null;
 		}
 		// single object, defined
-		response[request.type] = response[request.type][0];
+		response[root_key] = response[root_key][0];
 	} else {
 		// collection, empty response
 		if (typs(response).undef().check()) {
