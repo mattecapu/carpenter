@@ -49,7 +49,7 @@ export default function(context) {
 
 			// empty request? empty response!
 			if (typs(request).Null().check()) {
-				return Promise.resolve({response: {}, status: 404});
+				return {response: {}, status: 404};
 			}
 
 			// let's check it's all ok with the request
@@ -66,8 +66,6 @@ export default function(context) {
 
 			// pass the request object to a method-specific handler
 			return handlers[method](request, body, context);
-		}).then(({response, location, status}, x)  => {
-			return {response, location, status};
 		}).catch((error) => {
 			if (process.env.DEBUG && !(error instanceof jsonError)) {
 				throw error;
