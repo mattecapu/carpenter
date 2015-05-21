@@ -127,7 +127,7 @@ export function selectBy (request, context) {
 				query = buildJoin(rel.superset, query);
 			}
 
-			const same_table = false;//context.resources[rel.relationship.type].sql_table === rel.relationship.sql_table;
+			const same_table = context.resources[rel.relationship.type].sql_table === rel.relationship.sql_table;
 			const rel_alias = makeAlias(rel);
 			const rel_info_alias = same_table ? rel_alias : rel_alias + '$info';
 			const rel_superset = rel.superset || request.main;
